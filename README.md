@@ -21,11 +21,11 @@ A fast-paced, cyber security themed whack-a-mole game built with Python and Pyga
 
 - **Numpad 1-9** (or regular number keys 1-9): Whack the corresponding hole
 
-  ```
-  7 8 9
-  4 5 6
-  1 2 3
-  ```
+| | | |
+|-|-|-|
+| 7 | 8 | 9 |
+| 4 | 5 | 6 |
+| 1 | 2 | 3 |
 
 - **Mouse Click**: Whack holes directly with the cursor (hammer cursor appears during gameplay)
 - **Enter / Numpad Enter**: Start game / Play again / Confirm name
