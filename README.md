@@ -1,3 +1,4 @@
+
 # Whack-a-Hacker
 
 A fast-paced, cyber security themed whack-a-mole game built with Python and Pygame. Defeat hackers, avoid phishing traps, collect power-ups, and climb the leaderboard.
@@ -14,15 +15,19 @@ A fast-paced, cyber security themed whack-a-mole game built with Python and Pyga
 - **Procedural Assets**: All sprites and sound effects are generated in code — no external files required.
 - **Persistent Leaderboard**: Tracks high scores with stats like accuracy and bosses defeated.
 - **Customizable Themes**: Easy to re-theme by changing image paths and colors in the configuration.
+- **Mouse Support**: Click to whack with a custom hammer cursor that animates on click.
 
 ## Controls
 
 - **Numpad 1-9** (or regular number keys 1-9): Whack the corresponding hole
+
   ```
   7 8 9
   4 5 6
   1 2 3
   ```
+
+- **Mouse Click**: Whack holes directly with the cursor (hammer cursor appears during gameplay)
 - **Enter / Numpad Enter**: Start game / Play again / Confirm name
 - **L**: View leaderboard
 - **M**: Return to menu
@@ -106,7 +111,7 @@ The game is designed to be easily re-themed. Edit the configuration section at t
 
 ```python
 # Change game title and duration
-GAME_TITLE = "Whack-a-Mole"
+GAME_TITLE = "Whack-a-Hacker"
 GAME_DURATION = 90
 
 # Define custom images (optional)
@@ -134,6 +139,7 @@ C_TEXT = (0, 255, 200)
 ## Leaderboard
 
 High scores are saved to `leaderboard.json` in the game directory. The leaderboard tracks:
+
 - Score
 - Player name
 - Maximum combo achieved
@@ -154,6 +160,7 @@ The game will run without sound if Pygame audio initialization fails. All sound 
 ### Performance Issues
 
 The game is optimized to run at 60 FPS. If you experience slowdown:
+
 - Ensure you're running Python 3.8 or newer
 - Try installing pygame via `apt` instead of pip
 - Close other applications to free up resources
@@ -161,6 +168,7 @@ The game is optimized to run at 60 FPS. If you experience slowdown:
 ## Contributing
 
 Contributions are welcome! Feel free to submit pull requests for:
+
 - New enemy types
 - Additional power-ups
 - Theme variations
