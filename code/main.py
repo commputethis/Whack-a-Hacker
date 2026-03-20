@@ -789,6 +789,8 @@ class Effects:
 
 class Game:
     def __init__(self):
+        global SCREEN_WIDTH, SCREEN_HEIGHT
+
         self.audio_ok = True
         try:
             pygame.mixer.pre_init(22050, -16, 1, 512)
@@ -803,8 +805,9 @@ class Game:
             except pygame.error:
                 self.audio_ok = False
 
-        self.scr = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT),
-                                           pygame.DOUBLEBUF)
+        self.scr = pygame.display.set_mode((0, 0),
+                                           pygame.DOUBLEBUF | pygame.FULLSCREEN)
+        SCREEN_WIDTH, SCREEN_HEIGHT = self.scr.get_size()
         pygame.display.set_caption(GAME_TITLE)
         # Custom hammer cursor
         self.hammer_surf = self._make_hammer_cursor()
@@ -1421,7 +1424,6 @@ class Game:
         opts = [
             ("Press ENTER to Start", C_TEXT),
             ("Press L for Leaderboard", (180, 180, 200)),
-            ("Ctrl+Shift+C to Reset Leaderboard", (150, 150, 170)),
             ("Press ESC to Quit", (150, 150, 170)),
         ]
         y = 150
@@ -1572,6 +1574,19 @@ class Game:
                             and mods & pygame.KMOD_SHIFT):
                         self.lb.reset()
                         self._flash("Leaderboard Reset!", C_WARNING, 1500)
+                        continue
+
+                    # Alt+Enter to toggle fullscreen
+                    if (ev.key == pygame.K_RETURN
+                            and mods & pygame.KMOD_ALT):
+                        global SCREEN_WIDTH, SCREEN_HEIGHT
+                        if self.scr.get_flags() & pygame.FULLSCREEN:
+                            self.scr = pygame.display.set_mode(
+                                (800, 600), pygame.DOUBLEBUF)
+                        else:
+                            self.scr = pygame.display.set_mode(
+                                (0, 0), pygame.DOUBLEBUF | pygame.FULLSCREEN)
+                        SCREEN_WIDTH, SCREEN_HEIGHT = self.scr.get_size()
                         continue
 
                     # ---- per-state input ----
