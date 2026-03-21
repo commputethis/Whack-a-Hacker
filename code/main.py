@@ -27,6 +27,12 @@ SCREEN_WIDTH = 1920
 SCREEN_HEIGHT = 1080
 FPS = 60
 
+_DATA_DIR = os.environ.get("WHACK_DATA_DIR", "")
+if not _DATA_DIR:
+    _DATA_DIR = os.path.join(os.path.expanduser("~"), ".local", "share", "whack-a-hacker")
+os.makedirs(_DATA_DIR, exist_ok=True)
+LEADERBOARD_FILE = os.path.join(_DATA_DIR, "leaderboard.json")
+
 GRID_COLS = 3
 GRID_ROWS = 3
 HOLE_WIDTH = 170
@@ -126,8 +132,7 @@ NUMBER_MAP = {
     pygame.K_1: (2, 0), pygame.K_2: (2, 1), pygame.K_3: (2, 2),
 }
 
-LEADERBOARD_FILE = "leaderboard.json"
-MAX_LEADERBOARD = 10
+MAX_LEADERBOARD = 20
 
 
 # ===========================================================================

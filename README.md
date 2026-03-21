@@ -1,4 +1,3 @@
-
 # Whack-a-Hacker
 
 A fast-paced, cyber security themed whack-a-mole game built with Python and Pygame. Defeat hackers, avoid phishing traps, collect power-ups, and climb the leaderboard.
@@ -84,18 +83,50 @@ pip3 install pygame --break-system-packages
 
 ## Running the Game
 
+### From Source
+
 ```bash
 python3 main.py
 ```
 
 The game runs at 60 FPS and is optimized for modern systems. No external assets are required — all sprites and sounds are procedurally generated at startup.
 
+### AppImage (Portable Binary)
+
+Download the appropriate AppImage for your architecture:
+
+#### For x86_64 (Intel/AMD 64-bit PCs)
+
+```bash
+wget https://github.com/yourusername/whack-a-hacker/releases/download/v1.0/whack-a-hacker-x86_64.AppImage
+chmod +x whack-a-hacker-x86_64.AppImage
+./whack-a-hacker-x86_64.AppImage
+```
+
+#### For ARM64 (Raspberry Pi 4/5, ARM PCs)
+
+```bash
+wget https://github.com/yourusername/whack-a-hacker/releases/download/v1.0/whack-a-hacker-aarch64.AppImage
+chmod +x whack-a-hacker-aarch64.AppImage
+./whack-a-hacker-aarch64.AppImage
+```
+
+**AppImage Features:**
+
+- No installation required — single executable file
+- Includes Python and Pygame — no system dependencies
+- Runs on most Linux distributions (Ubuntu, Debian, Fedora, etc.)
+- Fixed 1920x1080 resolution for consistent gameplay
+- Leaderboard saves to `~/.local/share/whack-a-hacker/`
+
+**Note:** If you're building your own AppImage, use the provided `build-easy.sh` script. It automatically detects your architecture and bundles the appropriate Python version.
+
 ## Game Mechanics
 
 ### Scoring
 
 | Entity | Points | Notes |
-|--------|--------|-------|
+| ------ | ------ | ----- |
 | Hacker | +2 | Standard enemy |
 | APT Threat | +3 | Advanced Persistent Threat, faster |
 | Social Engineer | +3 | Disguised as friendly |
@@ -123,7 +154,7 @@ The game is designed to be easily re-themed. Edit the configuration section at t
 
 ```python
 # Change game title and duration
-GAME_TITLE = "Whack-a-Hacker"
+GAME_TITLE = "Whack-a-Mole"
 GAME_DURATION = 90
 
 # Define custom images (optional)
@@ -150,7 +181,7 @@ C_TEXT = (0, 255, 200)
 
 ## Leaderboard
 
-High scores are saved to `leaderboard.json` in the game directory. The leaderboard tracks:
+High scores are saved to `~/.local/share/whack-a-hacker/leaderboard.json` on your system. The leaderboard tracks:
 
 - Score
 - Player name
@@ -171,11 +202,29 @@ The game will run without sound if Pygame audio initialization fails. All sound 
 
 ### Performance Issues
 
-The game is optimized to run at 60 FPS. If you experience slowdown:
+The game runs at a fixed 1920x1080 resolution and 60 FPS. If you experience slowdown:
 
 - Ensure you're running Python 3.8 or newer
 - Try installing pygame via `apt` instead of pip
 - Close other applications to free up resources
+- If your display doesn't support 1920x1080, the game may appear cropped or letterboxed
+
+### AppImage Issues
+
+- **"Permission denied"**: Run `chmod +x whack-a-hacker-*.AppImage`
+- **"Cannot open shared object file"**: The AppImage includes all required libraries; this error usually means you're on a very old Linux distribution
+- **Leaderboard not saving**: Ensure `~/.local/share/whack-a-hacker/` exists and is writable
+
+## Building Your Own AppImage
+
+**Note:** To change the resolution from the default 1920x1080, edit `SCREEN_WIDTH` and `SCREEN_HEIGHT` at the top of `main.py` before building your AppImage.
+
+If you want to build the AppImage yourself:
+
+1. Install dependencies: `sudo apt install python3-pygame wget`
+2. Make the build script executable: `chmod +x build-easy.sh`
+3. Run the build script: `./build-easy.sh`
+4. The script automatically detects your architecture (x86_64 or aarch64) and builds the appropriate AppImage
 
 ## Contributing
 
