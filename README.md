@@ -98,7 +98,7 @@ Download the appropriate AppImage for your architecture:
 #### For x86_64 (Intel/AMD 64-bit PCs)
 
 ```bash
-wget https://github.com/yourusername/whack-a-hacker/releases/download/v1.0/whack-a-hacker-x86_64.AppImage
+wget https://github.com/commputethis/Whack-a-Hacker/releases/download/v1.01/whack-a-hacker-x86_64_v1.01.AppImage
 chmod +x whack-a-hacker-x86_64.AppImage
 ./whack-a-hacker-x86_64.AppImage
 ```
@@ -106,7 +106,7 @@ chmod +x whack-a-hacker-x86_64.AppImage
 #### For ARM64 (Raspberry Pi 4/5, ARM PCs)
 
 ```bash
-wget https://github.com/yourusername/whack-a-hacker/releases/download/v1.0/whack-a-hacker-aarch64.AppImage
+wget https://github.com/commputethis/Whack-a-Hacker/releases/download/v1.01/whack-a-hacker-aarch64_v1.01.AppImage
 chmod +x whack-a-hacker-aarch64.AppImage
 ./whack-a-hacker-aarch64.AppImage
 ```
