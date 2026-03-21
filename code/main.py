@@ -33,6 +33,11 @@ if not _DATA_DIR:
 os.makedirs(_DATA_DIR, exist_ok=True)
 LEADERBOARD_FILE = os.path.join(_DATA_DIR, "leaderboard.json")
 
+# Look for user assets first, fall back to bundled assets
+_USER_ASSETS = os.path.join(_DATA_DIR, "assets")
+_BUNDLED_ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
+ASSETS_DIR = _USER_ASSETS if os.path.isdir(_USER_ASSETS) else _BUNDLED_ASSETS
+
 GRID_COLS = 3
 GRID_ROWS = 3
 HOLE_WIDTH = 170
@@ -88,16 +93,16 @@ SPAWN_WEIGHTS = {
 
 # ---- Optional image overrides (place PNGs in assets/) ----
 MOLE_IMAGE_PATHS = {
-    "hacker": ["assets/hacker1.png", "assets/hacker2.png", "assets/hacker3.png"],
-    "apt": ["assets/apt.png"],
-    "boss": ["assets/boss.png"],
-    "social_engineer": ["assets/social_eng.png"],
+    "hacker": ["{ASSETS_DIR}/hacker1.png", "{ASSETS_DIR}/hacker2.png", "{ASSETS_DIR}/hacker3.png"],
+    "apt": ["{ASSETS_DIR}/apt.png"],
+    "boss": ["{ASSETS_DIR}/boss.png"],
+    "social_engineer": ["{ASSETS_DIR}/social_eng.png"],
 }
 FRIENDLY_IMAGE_PATHS = {
-    "shield": ["assets/shield.png"],
-    "it_admin": ["assets/it_admin.png"],
-    "lock": ["assets/lock.png"],
-    "phishing": ["assets/phishing.png"],
+    "shield": ["{ASSETS_DIR}/shield.png"],
+    "it_admin": ["{ASSETS_DIR}/it_admin.png"],
+    "lock": ["{ASSETS_DIR}/lock.png"],
+    "phishing": ["{ASSETS_DIR}/phishing.png"],
 }
 
 # ---- Colours ----

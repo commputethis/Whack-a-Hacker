@@ -172,6 +172,50 @@ C_BG = (15, 15, 35)
 C_TEXT = (0, 255, 200)
 ```
 
+### Custom Sprites
+
+To use custom sprites, create an `assets` folder in your data directory and drop in
+your PNG files (80x80 pixels recommended):
+
+```bash
+mkdir -p ~/.local/share/whack-a-hacker/assets
+```
+
+The game checks for images in this order:
+
+~/.local/share/whack-a-hacker/assets/ (user customizations)
+Bundled assets (inside the AppImage or source directory)
+Procedurally generated sprites (always available as fallback)
+Supported filenames
+Enemies:
+
+hacker1.png, hacker2.png, hacker3.png
+apt.png
+boss.png
+social_eng.png
+Friendlies:
+
+shield.png
+it_admin.png
+lock.png
+phishing.png
+You only need to provide the images you want to override. Any missing images
+will use the procedurally generated sprites.
+
+Theme Colors
+Edit the color configuration at the top of main.py:
+
+``` python
+C_BG = (15, 15, 35)
+C_TEXT = (0, 255, 200)
+```
+
+Note: Color changes require editing main.py directly, which means
+rebuilding the AppImage if you're using one. Sprite customization does not
+require a rebuild.
+
+_No AppImage rebuild needed to swap sprites. Users just drop PNGs into `~/.local/share/whack-a-hacker/assets/` and restart the game._
+
 ### Adding Custom Assets
 
 1. Create an `assets/` folder in the game directory
