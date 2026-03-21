@@ -23,8 +23,8 @@ from pathlib import Path
 
 GAME_TITLE = "Whack-a-Hacker!"
 GAME_DURATION = 90  # seconds
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
+SCREEN_WIDTH = 1920
+SCREEN_HEIGHT = 1080
 FPS = 60
 
 GRID_COLS = 3
@@ -789,8 +789,6 @@ class Effects:
 
 class Game:
     def __init__(self):
-        global SCREEN_WIDTH, SCREEN_HEIGHT
-
         self.audio_ok = True
         try:
             pygame.mixer.pre_init(22050, -16, 1, 512)
@@ -805,9 +803,8 @@ class Game:
             except pygame.error:
                 self.audio_ok = False
 
-        self.scr = pygame.display.set_mode((0, 0),
-                                           pygame.DOUBLEBUF | pygame.FULLSCREEN)
-        SCREEN_WIDTH, SCREEN_HEIGHT = self.scr.get_size()
+        self.scr = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT),
+                                           pygame.DOUBLEBUF)
         pygame.display.set_caption(GAME_TITLE)
         # Custom hammer cursor
         self.hammer_surf = self._make_hammer_cursor()
@@ -1574,19 +1571,6 @@ class Game:
                             and mods & pygame.KMOD_SHIFT):
                         self.lb.reset()
                         self._flash("Leaderboard Reset!", C_WARNING, 1500)
-                        continue
-
-                    # Alt+Enter to toggle fullscreen
-                    if (ev.key == pygame.K_RETURN
-                            and mods & pygame.KMOD_ALT):
-                        global SCREEN_WIDTH, SCREEN_HEIGHT
-                        if self.scr.get_flags() & pygame.FULLSCREEN:
-                            self.scr = pygame.display.set_mode(
-                                (800, 600), pygame.DOUBLEBUF)
-                        else:
-                            self.scr = pygame.display.set_mode(
-                                (0, 0), pygame.DOUBLEBUF | pygame.FULLSCREEN)
-                        SCREEN_WIDTH, SCREEN_HEIGHT = self.scr.get_size()
                         continue
 
                     # ---- per-state input ----
