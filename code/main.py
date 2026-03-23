@@ -1512,6 +1512,8 @@ class Game:
         self.scr.blit(r1, (SCREEN_WIDTH // 2 - r1.get_width() // 2, y))
         r2 = self.f_sm.render("M for Menu", True, (150, 150, 170))
         self.scr.blit(r2, (SCREEN_WIDTH // 2 - r2.get_width() // 2, y + 38))
+        r3 = self.f_sm.render("L for Leaderboard", True, (180, 180, 200))
+        self.scr.blit(r3, (SCREEN_WIDTH // 2 - r3.get_width() // 2, y + 66))
 
     def _draw_name(self):
         self.scr.fill(C_BG)
@@ -1642,6 +1644,8 @@ class Game:
                             self._reset()
                             self.state = "play"
                             self._play("start")
+                        elif ev.key == pygame.K_l:
+                            self.state = "lb"
                         elif ev.key in (pygame.K_m, pygame.K_ESCAPE):
                             self.state = "menu"
 
