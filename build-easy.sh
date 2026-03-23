@@ -127,8 +127,8 @@ done
 
 # ---- Copy game files ----
 echo "Copying game files..."
-cp ../main.py "${APPDIR}/app/"
-cp -r ../assets "${APPDIR}/app/" 2>/dev/null || mkdir -p "${APPDIR}/app/assets"
+cp ../code/main.py "${APPDIR}/app/"
+cp -r ../code/assets "${APPDIR}/app/" 2>/dev/null || mkdir -p "${APPDIR}/app/assets"
 
 # ---- Create AppRun ----
 echo "Creating AppRun..."
@@ -149,6 +149,31 @@ export SDL_VIDEODRIVER="\${SDL_VIDEODRIVER:-x11}"
 
 export WHACK_DATA_DIR="\${XDG_DATA_HOME:-\$HOME/.local/share}/whack-a-hacker"
 mkdir -p "\${WHACK_DATA_DIR}"
+
+# Install icon and .desktop file for the system to find
+ICON_DIR="\${HOME}/.local/share/icons/hicolor/256x256/apps"
+DESKTOP_DIR="\${HOME}/.local/share/applications"
+mkdir -p "\${ICON_DIR}" "\${DESKTOP_DIR}"
+
+if [ ! -f "\${ICON_DIR}/whack-a-hacker.png" ]; then
+    cp "\${APPDIR}/whack-a-hacker.png" "\${ICON_DIR}/whack-a-hacker.png" 2>/dev/null || true
+fi
+
+# Create a .desktop file pointing to the actual AppImage location
+APPIMAGE_PATH="\$(readlink -f "\${OWD:-\$(pwd)}/\$(basename "\${ARGV0:-\$0}")" 2>/dev/null || true)"
+if [ -n "\${APPIMAGE}" ]; then
+    APPIMAGE_PATH="\${APPIMAGE}"
+fi
+cat > "\${DESKTOP_DIR}/whack-a-hacker.desktop" << DESK
+[Desktop Entry]
+Type=Application
+Name=Whack-a-Hacker
+Comment=Cyber Security Whack-a-Mole Game
+Exec=\${APPIMAGE_PATH}
+Icon=whack-a-hacker
+Categories=Game;ArcadeGame;
+Terminal=false
+DESK
 
 cd "\${APPDIR}/app"
 exec "\${APPDIR}/usr/bin/python3" main.py "\$@"
@@ -211,15 +236,17 @@ fi
 
 # ---- Build AppImage ----
 echo "Packaging AppImage..."
-ARCH=${ARCH} ./appimagetool "${APPDIR}" "../${APP_NAME}-${ARCH}.AppImage"
+ARCH=${ARCH} ./appimagetool "${APPDIR}" "../AppImages/${APP_NAME}-${ARCH}.AppImage"
 
-cd ..
+cd ../AppImages/
 chmod +x "${APP_NAME}-${ARCH}.AppImage"
 
+SIZE=$(du -h "${APP_NAME}-${ARCH}.AppImage" | cut -f1)
+
 # ---- Cleanup ----
+cd ..
 rm -rf build-appimage
 
-SIZE=$(du -h "${APP_NAME}-${ARCH}.AppImage" | cut -f1)
 echo ""
 echo "=== Done! ==="
 echo "Output: ${APP_NAME}-${ARCH}.AppImage (${SIZE})"

@@ -3,7 +3,7 @@
 Whack-a-Hacker: A Cyber Security themed Whack-a-Mole game
 Features: Boss moles, power-ups, deceptive entities (phishing/social engineers),
           combo system, procedural sounds & sprites, persistent leaderboard.
-Controls: Numpad 1-9 (or regular 1-9), Ctrl+Shift+C to reset leaderboard.
+Controls: Numpad 1-9 (or regular 1-9) or Mouse Click, Ctrl+Shift+C to reset leaderboard.
 """
 
 import pygame
@@ -36,7 +36,6 @@ LEADERBOARD_FILE = os.path.join(_DATA_DIR, "leaderboard.json")
 # Look for user assets first, fall back to bundled assets
 _USER_ASSETS = os.path.join(_DATA_DIR, "assets")
 _BUNDLED_ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
-ASSETS_DIR = _USER_ASSETS if os.path.isdir(_USER_ASSETS) else _BUNDLED_ASSETS
 
 GRID_COLS = 3
 GRID_ROWS = 3
@@ -93,19 +92,19 @@ SPAWN_WEIGHTS = {
 
 # ---- Optional image overrides (place PNGs in assets/) ----
 MOLE_IMAGE_PATHS = {
-    "hacker": ["{ASSETS_DIR}/hacker1.png", "{ASSETS_DIR}/hacker2.png", "{ASSETS_DIR}/hacker3.png"],
-    "apt": ["{ASSETS_DIR}/apt.png"],
-    "boss": ["{ASSETS_DIR}/boss.png"],
-    "social_engineer": ["{ASSETS_DIR}/social_eng.png"],
+    "hacker": ["hacker1.png", "hacker2.png", "hacker3.png"],
+    "apt": ["apt.png"],
+    "boss": ["boss.png"],
+    "social_engineer": ["social_eng.png"],
 }
 FRIENDLY_IMAGE_PATHS = {
-    "shield": ["{ASSETS_DIR}/shield.png"],
-    "it_admin": ["{ASSETS_DIR}/it_admin.png"],
-    "lock": ["{ASSETS_DIR}/lock.png"],
-    "phishing": ["{ASSETS_DIR}/phishing.png"],
+    "shield": ["shield.png"],
+    "it_admin": ["it_admin.png"],
+    "lock": ["lock.png"],
+    "phishing": ["phishing.png"],
 }
 
-# ---- Colours ----
+# ---- Colors ----
 C_BG            = (15, 15, 35)
 C_HOLE          = (30, 30, 50)
 C_HOLE_BORDER   = (0, 200, 255)
@@ -816,6 +815,12 @@ class Game:
         self.scr = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT),
                                            pygame.DOUBLEBUF)
         pygame.display.set_caption(GAME_TITLE)
+
+        # Set window icon
+        icon = self._make_window_icon()
+        if icon:
+            pygame.display.set_icon(icon)
+                    
         # Custom hammer cursor
         self.hammer_surf = self._make_hammer_cursor()
         self.show_hammer = False
@@ -849,13 +854,16 @@ class Game:
 
     # ---- asset loading ----------------------------------------------------
 
-    def _try_img(self, path, sz, fallback):
-        if os.path.exists(path):
-            try:
-                img = pygame.image.load(path).convert_alpha()
-                return pygame.transform.smoothscale(img, sz)
-            except Exception:
-                pass
+    def _try_img(self, filename, sz, fallback):
+        """Check user assets first, then bundled assets, then use fallback."""
+        for assets_dir in [_USER_ASSETS, _BUNDLED_ASSETS]:
+            path = os.path.join(assets_dir, filename)
+            if os.path.exists(path):
+                try:
+                    img = pygame.image.load(path).convert_alpha()
+                    return pygame.transform.smoothscale(img, sz)
+                except Exception:
+                    pass
         return fallback
 
     def _load_sprites(self):
@@ -863,27 +871,27 @@ class Game:
         m = self.imgs
 
         m["hacker"] = []
-        paths = MOLE_IMAGE_PATHS.get("hacker", [])
-        for i in range(max(3, len(paths))):
+        filenames = MOLE_IMAGE_PATHS.get("hacker", [])
+        for i in range(max(3, len(filenames))):
             fb = Sprites.hacker(sz, i)
-            if i < len(paths):
-                m["hacker"].append(self._try_img(paths[i], sz, fb))
+            if i < len(filenames):
+                m["hacker"].append(self._try_img(filenames[i], sz, fb))
             else:
                 m["hacker"].append(fb)
 
         for key, gen in [("apt", Sprites.apt), ("boss", Sprites.boss),
                          ("social_engineer", Sprites.social_engineer)]:
             fb = gen(sz)
-            p = (MOLE_IMAGE_PATHS.get(key, [""])[0]
-                 if MOLE_IMAGE_PATHS.get(key) else "")
-            m[key] = [self._try_img(p, sz, fb)]
+            filenames = MOLE_IMAGE_PATHS.get(key, [])
+            fn = filenames[0] if filenames else ""
+            m[key] = [self._try_img(fn, sz, fb)]
 
         for key, gen in [("shield", Sprites.shield), ("it_admin", Sprites.it_admin),
                          ("lock", Sprites.lock), ("phishing", Sprites.phishing)]:
             fb = gen(sz)
-            p = (FRIENDLY_IMAGE_PATHS.get(key, [""])[0]
-                 if FRIENDLY_IMAGE_PATHS.get(key) else "")
-            m[key] = [self._try_img(p, sz, fb)]
+            filenames = FRIENDLY_IMAGE_PATHS.get(key, [])
+            fn = filenames[0] if filenames else ""
+            m[key] = [self._try_img(fn, sz, fb)]
 
         m["pu_freeze"] = [Sprites.pu_freeze(sz)]
         m["pu_double"] = [Sprites.pu_double(sz)]
@@ -1560,6 +1568,31 @@ class Game:
             self.f_xs.render("Ctrl+Shift+C to Reset", True,
                              (100, 100, 120)),
             (SCREEN_WIDTH // 2 - 80, y + 28))
+    
+    def _make_window_icon(self):
+        # Try loading external icon first
+        for path in [
+            os.path.join(_DATA_DIR, "whack-a-hacker.png"),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                         "whack-a-hacker.png"),
+        ]:
+            if os.path.exists(path):
+                try:
+                    return pygame.image.load(path).convert_alpha()
+                except Exception:
+                    pass
+
+        # Generate one procedurally
+        sz = 64
+        s = pygame.Surface((sz, sz), pygame.SRCALPHA)
+        pygame.draw.circle(s, (15, 15, 35), (32, 32), 30)
+        pygame.draw.circle(s, (0, 200, 255), (32, 32), 30, 2)
+        pygame.draw.rect(s, (140, 140, 150), (18, 8, 28, 14), border_radius=3)
+        pygame.draw.line(s, (160, 120, 60), (32, 22), (32, 52), 5)
+        pygame.draw.circle(s, (200, 40, 40), (32, 38), 8)
+        pygame.draw.rect(s, (0, 255, 0), (28, 36, 3, 2))
+        pygame.draw.rect(s, (0, 255, 0), (33, 36, 3, 2))
+        return s
 
     # ---- main loop --------------------------------------------------------
 
