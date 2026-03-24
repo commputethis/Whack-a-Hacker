@@ -3,6 +3,7 @@ set -e
 
 APP_NAME="whack-a-hacker"
 ARCH=$(uname -m)
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 
 echo "=== Building Whack-a-Hacker AppImage (${ARCH}) ==="
 
@@ -22,12 +23,12 @@ PYTHON_BIN=$(readlink -f "$(which python3)")
 echo "Using system Python ${PYTHON_VER} at ${PYTHON_BIN}"
 
 # ---- Clean previous build ----
-rm -rf build-appimage
+rm -rf ${SCRIPT_DIR}/build-appimage
 mkdir -p build-appimage/AppDir/usr/bin
 mkdir -p build-appimage/AppDir/usr/lib
 mkdir -p build-appimage/AppDir/usr/share/fonts
 mkdir -p build-appimage/AppDir/app
-cd build-appimage
+cd ${SCRIPT_DIR}/build-appimage
 APPDIR="$(pwd)/AppDir"
 
 # ---- Copy Python binary ----
@@ -127,8 +128,8 @@ done
 
 # ---- Copy game files ----
 echo "Copying game files..."
-cp ../code/main.py "${APPDIR}/app/"
-cp -r ../code/assets "${APPDIR}/app/" 2>/dev/null || mkdir -p "${APPDIR}/app/assets"
+cp "${SCRIPT_DIR}/code/main.py" "${APPDIR}/app/"
+cp -r "${SCRIPT_DIR}/code/assets" "${APPDIR}/app/" 2>/dev/null || mkdir -p "${APPDIR}/app/assets"
 
 # ---- Create AppRun ----
 echo "Creating AppRun..."
@@ -193,8 +194,8 @@ Terminal=false
 DESKTOP
 
 # ---- Generate icon ----
-if [ -f ../whack-a-hacker.png ]; then
-    cp ../whack-a-hacker.png "${APPDIR}/whack-a-hacker.png"
+if [ -f "${SCRIPT_DIR}/whack-a-hacker.png" ]; then
+    cp "${SCRIPT_DIR}/whack-a-hacker.png" "${APPDIR}/whack-a-hacker.png"
 else
     echo "Generating icon..."
     python3 -c "
@@ -236,15 +237,17 @@ fi
 
 # ---- Build AppImage ----
 echo "Packaging AppImage..."
-ARCH=${ARCH} ./appimagetool "${APPDIR}" "../AppImages/${APP_NAME}-${ARCH}.AppImage"
+OUTPUT_DIR="${SCRIPT_DIR}/AppImages"
+mkdir -p "${OUTPUT_DIR}"
+ARCH=${ARCH} ./appimagetool "${APPDIR}" "${OUTPUT_DIR}/${APP_NAME}-${ARCH}.AppImage"
 
-cd ../AppImages/
+cd "${OUTPUT_DIR}"
 chmod +x "${APP_NAME}-${ARCH}.AppImage"
 
 SIZE=$(du -h "${APP_NAME}-${ARCH}.AppImage" | cut -f1)
 
 # ---- Cleanup ----
-cd ..
+cd ${SCRIPT_DIR}
 rm -rf build-appimage
 
 echo ""
