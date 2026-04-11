@@ -1,4 +1,3 @@
-
 # Whack-a-Hacker
 
 A fast-paced, cyber security themed whack-a-mole game built with Python and Pygame. Defeat hackers, avoid phishing traps, collect power-ups, and climb the leaderboard.
