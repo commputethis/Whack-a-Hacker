@@ -1,3 +1,4 @@
+
 # Whack-a-Hacker
 
 A fast-paced, cyber security themed whack-a-mole game built with Python and Pygame. Defeat hackers, avoid phishing traps, collect power-ups, and climb the leaderboard.
@@ -9,19 +10,19 @@ A fast-paced, cyber security themed whack-a-mole game built with Python and Pyga
 - **Diverse Enemy Types**: Regular hackers, APT threats, social engineers, and powerful boss hackers.
 - **Deceptive Penalties**: Phishing emails that look hostile but penalize you for hitting them.
 - **Power-Ups**: Freeze time, double points, add time to the clock, and slow motion.
-- **Boss Battles**: Boss hackers appear every ~30 seconds and require 3 hits to defeat.
+- **Boss Battles**: Boss hackers appear every ~20 seconds and require 3 hits to defeat.
 - **Combo System**: Chain successful hits for bonus points.
 - **Procedural Assets**: All sprites and sound effects are generated in code — no external files required.
 - **Persistent Leaderboard**: Tracks high scores with stats like accuracy and bosses defeated.
 - **Customizable Themes**: Easy to re-theme by changing image paths and colors in the configuration.
 - **Mouse Support**: Click to whack with a custom hammer cursor that animates on click.
+- **DIY Hardware Support**: Build your own physical button box for an arcade experience (see DIY Keypad section).
 
 ## Controls
 
 - **Numpad 1-9** (or regular number keys 1-9): Whack the corresponding hole
 
-<table>
-  <tr>
+<table>  <tr>
     <td> 7 </td>
     <td> 8 </td>
     <td> 9 </td>
@@ -44,6 +45,163 @@ A fast-paced, cyber security themed whack-a-mole game built with Python and Pyga
 - **M**: Return to menu
 - **ESC**: Quit game / Return to menu
 - **Ctrl+Shift+C**: Reset leaderboard
+
+## DIY Hardware Keypad (Optional)
+
+For an enhanced arcade experience, you can build your own physical button box that connects to your computer via USB and simulates key presses. This provides a more tactile and responsive gaming experience.
+
+### What You'll Need
+
+#### Hardware Components
+
+1. **ESP32-S3 Development Board** (recommended: ESP32-S3-DevKitC-1)
+   - Native USB HID support for keyboard emulation
+   - Plenty of GPIO pins for all buttons
+   - Powered directly via USB connection
+
+2. **12x 30mm Arcade Buttons** (e.g., EG STARTS arcade buttons)
+   - 9 black buttons for game controls (1-9)
+   - 3 colored buttons for system controls (Menu/Quit (Red), Leaderboard (Yellow), Enter (Green))
+
+3. **Jumper Wires** for connecting buttons to the ESP32-S3
+
+4. **USB Cable** (USB-A to USB-C or USB-Micro depending on your board)
+
+5. **3D Printed Enclosure** (design your own or modify existing designs)
+
+#### Software Requirements
+
+- Arduino IDE with ESP32 board support
+- ESP32 USB HID library
+- Bounce2 library for button debouncing
+
+### Assembly Instructions
+
+1. **Install ESP32 Support in Arduino IDE**
+   - Add `https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_dev_index.json` to Additional Boards Manager URLs
+   - Install "ESP32 by Espressif Systems" via Boards Manager
+   - Select your ESP32-S3 board from Tools → Board
+
+2. **Program the ESP32-S3**
+   - Install the Bounce2 library via Library Manager
+   - Upload the provided code (see Code section below)
+   - Test that the computer recognizes it as a USB keyboard
+
+3. **Wire the Buttons**
+   - Connect each button's COM terminal to GND on the ESP32-S3
+   - Connect each button's NO terminal to the corresponding GPIO pin
+   - No external resistors needed (using internal pull-ups)
+
+4. **Assemble the Enclosure**
+   - Mount the buttons in your 3D printed case
+   - Install the ESP32-S3 inside
+   - Route the USB cable through an opening
+
+### Code
+
+```cpp
+#include "USB.h"
+#include "USBHIDKeyboard.h"
+#include "Bounce2.h"
+
+USBHIDKeyboard Keyboard;
+
+// Game control buttons (9)
+const byte gameButtonPins[9] = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+const byte gameKeyCodes[9] = {
+  KEY_KP_7, KEY_KP_8, KEY_KP_9,  // Top row
+  KEY_KP_4, KEY_KP_5, KEY_KP_6,  // Middle row
+  KEY_KP_1, KEY_KP_2, KEY_KP_3   // Bottom row
+};
+
+// System control buttons (3)
+const byte systemButtonPins[3] = {10, 11, 12};
+const byte systemKeyCodes[3] = {
+  KEY_RETURN,  // Start
+  'l',        // Leaderboard
+  KEY_ESC     // Menu/Quit
+};
+
+// Create bounce objects for all buttons
+Bounce gameButtons[9];
+Bounce systemButtons[3];
+
+void setup() {
+  // Initialize game buttons with pull-up resistors
+  for(int i = 0; i < 9; i++) {
+    pinMode(gameButtonPins[i], INPUT_PULLUP);
+    gameButtons[i].attach(gameButtonPins[i]);
+    gameButtons[i].interval(25); // 25ms debounce interval
+  }
+  
+  // Initialize system buttons with pull-up resistors
+  for(int i = 0; i < 3; i++) {
+    pinMode(systemButtonPins[i], INPUT_PULLUP);
+    systemButtons[i].attach(systemButtonPins[i]);
+    systemButtons[i].interval(25); // 25ms debounce interval
+  }
+  
+  // Initialize USB HID keyboard
+  Keyboard.begin();
+  USB.begin();
+}
+
+void loop() {
+  // Update game button states
+  for(int i = 0; i < 9; i++) {
+    gameButtons[i].update();
+    
+    // Check if button was pressed
+    if(gameButtons[i].fell()) {
+      Keyboard.write(gameKeyCodes[i]);
+    }
+  }
+  
+  // Update system button states
+  for(int i = 0; i < 3; i++) {
+    systemButtons[i].update();
+    
+    // Check if button was pressed
+    if(systemButtons[i].fell()) {
+      Keyboard.write(systemKeyCodes[i]);
+    }
+  }
+}
+```
+
+### Button Layout
+
+``` text
+[Menu] [Leaderboard] [Play]
+
+[7] [8] [9]
+[4] [5] [6]
+[1] [2] [3]
+```
+
+### Pin Mapping
+
+| Button      | ESP32-S3 Pin | Function |
+|-------------|--------------|----------|
+| 7           | GPIO 1       | Numpad 7 |
+| 8           | GPIO 2       | Numpad 8 |
+| 9           | GPIO 3       | Numpad 9 |
+| 4           | GPIO 4       | Numpad 4 |
+| 5           | GPIO 5       | Numpad 5 |
+| 6           | GPIO 6       | Numpad 6 |
+| 1           | GPIO 7       | Numpad 1 |
+| 2           | GPIO 8       | Numpad 2 |
+| 3           | GPIO 9       | Numpad 3 |
+| Play        | GPIO 10      | Enter    |
+| Leaderboard | GPIO 11      | L        |
+| Menu        | GPIO 12      | Escape   |
+
+### Troubleshooting DIY Pad
+
+- If a button doesn't work, check your wiring and try a different GPIO pin
+- For letter keys like 'L', use the character directly rather than a constant
+- Some GPIO pins on ESP32-S3 may have special functions - avoid GPIO 0 if possible
+- Ensure all COM terminals are connected to GND
 
 ## Installation
 
@@ -260,6 +418,12 @@ The game runs at a fixed 1920x1080 resolution and 60 FPS. If you experience slow
 - **"Cannot open shared object file"**: The AppImage includes all required libraries; this error usually means you're on a very old Linux distribution
 - **Leaderboard not saving**: Ensure `~/.local/share/whack-a-hacker/` exists and is writable
 
+### DIY Keypad Issues
+
+- **Button not responding**: Check wiring and try a different GPIO pin
+- **Wrong key being sent**: Verify the keycode constants in the code
+- **Computer not recognizing device**: Ensure the ESP32-S3 is properly programmed with USB HID support
+
 ## Building Your Own AppImage
 
 **Note:** To change the resolution from the default 1920x1080, edit `SCREEN_WIDTH` and `SCREEN_HEIGHT` at the top of `main.py` before building your AppImage.
@@ -280,6 +444,7 @@ Contributions are welcome! Feel free to submit pull requests for:
 - Theme variations
 - Bug fixes
 - Performance improvements
+- DIY hardware enhancements
 
 ## License
 
@@ -291,3 +456,4 @@ This project is released under the MIT License. Feel free to modify and redistri
 - Sound effects generated using mathematical waveforms
 - Sprites generated procedurally using Pygame drawing functions
 - Inspired by classic arcade whack-a-mole games
+- DIY keypad implementation using ESP32-S3 with USB HID support

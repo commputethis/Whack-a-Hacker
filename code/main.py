@@ -16,13 +16,12 @@ import math
 import array
 from pathlib import Path
 
-
 # ===========================================================================
 # CONFIGURATION — Edit these to re-theme the entire game
 # ===========================================================================
 
 GAME_TITLE = "Whack-a-Hacker!"
-GAME_DURATION = 90  # seconds
+GAME_DURATION = 60  # seconds
 SCREEN_WIDTH = 1920
 SCREEN_HEIGHT = 1080
 FPS = 60
@@ -65,8 +64,8 @@ RAMP_INTERVAL = 15       # seconds between difficulty bumps
 SPEED_REDUCTION_MS = 80  # ms shaved off show-time per bump
 
 # ---- Boss ----
-BOSS_FIRST_SPAWN = 25    # seconds into the game
-BOSS_SPAWN_INTERVAL = 30  # seconds between bosses after the first
+BOSS_FIRST_SPAWN = 20    # seconds into the game
+BOSS_SPAWN_INTERVAL = 15  # seconds between bosses after the first
 BOSS_HITS_REQUIRED = 3
 BOSS_SHOW_TIME_MULT = 2.5
 
@@ -1385,7 +1384,7 @@ class Game:
 
         # footer
         self.scr.blit(
-            self.f_xs.render("Numpad 1-9: Whack  |  ESC: Menu", True,
+            self.f_xs.render("Numpad 1-9: Whack  |  ESC/Red Button: Menu", True,
                              (100, 100, 120)),
             (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT - 25))
 
@@ -1437,9 +1436,9 @@ class Game:
         self.scr.blit(t2, (SCREEN_WIDTH // 2 - t2.get_width() // 2, 98))
 
         opts = [
-            ("Press ENTER to Start", C_TEXT),
-            ("Press L for Leaderboard", (180, 180, 200)),
-            ("Press ESC to Quit", (150, 150, 170)),
+            ("Press ENTER or Green Button to Start", C_TEXT),
+            ("Press L or Yellow Button for Leaderboard", (180, 180, 200)),
+            ("Press ESC or Red Button to Quit", (150, 150, 170)),
         ]
         y = 150
         for txt, col in opts:
@@ -1508,9 +1507,9 @@ class Game:
             y += 26
 
         y += 12
-        r1 = self.f_md.render("ENTER to Play Again", True, C_TEXT)
+        r1 = self.f_md.render("ENTER or Green Button to Play Again", True, C_TEXT)
         self.scr.blit(r1, (SCREEN_WIDTH // 2 - r1.get_width() // 2, y))
-        r2 = self.f_sm.render("M for Menu", True, (150, 150, 170))
+        r2 = self.f_sm.render("M or Red Button for Menu", True, (150, 150, 170))
         self.scr.blit(r2, (SCREEN_WIDTH // 2 - r2.get_width() // 2, y + 38))
         r3 = self.f_sm.render("L for Leaderboard", True, (180, 180, 200))
         self.scr.blit(r3, (SCREEN_WIDTH // 2 - r3.get_width() // 2, y + 66))
@@ -1564,7 +1563,7 @@ class Game:
 
         y = SCREEN_HEIGHT - 70
         self.scr.blit(
-            self.f_sm.render("ESC or M for Menu", True, (150, 150, 170)),
+            self.f_sm.render("ESC, M, or Red Button for Menu", True, (150, 150, 170)),
             (SCREEN_WIDTH // 2 - 90, y))
         self.scr.blit(
             self.f_xs.render("Ctrl+Shift+C to Reset", True,
