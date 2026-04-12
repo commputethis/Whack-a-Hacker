@@ -39,8 +39,8 @@ _BUNDLED_ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "asse
 
 GRID_COLS = 3
 GRID_ROWS = 3
-HOLE_WIDTH = 170
-HOLE_HEIGHT = 145
+HOLE_WIDTH = 200
+HOLE_HEIGHT = 170
 
 # ---- Timing (ms) ----
 MOLE_MIN_SHOW_TIME = 900
