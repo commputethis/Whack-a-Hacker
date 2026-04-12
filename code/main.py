@@ -1436,7 +1436,7 @@ class Game:
 
 
         subtitle_font = pygame.font.SysFont("monospace", 36, bold=True) 
-        t2 = subtitle_font.render("Protect Your Portfolio!", True,
+        t2 = subtitle_font.render("Cyber Security Whack-a-Mole", True,
                                   (100, 220, 150))
         self.scr.blit(t2, (SCREEN_WIDTH // 2 - t2.get_width() // 2, 98))
 
