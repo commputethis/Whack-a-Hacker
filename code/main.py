@@ -14,6 +14,7 @@ import sys
 import time
 import math
 import array
+import pygame.display
 from pathlib import Path
 
 # ===========================================================================
@@ -1429,28 +1430,32 @@ class Game:
         tc = (int(min(255, C_TEXT[0] + p)), C_TEXT[1],
               int(min(255, C_TEXT[2] + p)))
 
-        t = self.f_lg.render(GAME_TITLE, True, tc)
+        title_font = pygame.font.SysFont("monospace", 64, bold=True)
+        t = title_font.render(GAME_TITLE, True, tc)
         self.scr.blit(t, (SCREEN_WIDTH // 2 - t.get_width() // 2, 40))
-        t2 = self.f_sm.render("Cyber Security Whack-a-Mole", True,
-                              (100, 200, 200))
+
+
+        subtitle_font = pygame.font.SysFont("monospace", 36, bold=True) 
+        t2 = subtitle_font.render("Protect Your Portfolio!", True,
+                                  (100, 220, 150))
         self.scr.blit(t2, (SCREEN_WIDTH // 2 - t2.get_width() // 2, 98))
 
         opts = [
             ("Press ENTER or Green Button to Start", C_TEXT),
-            ("Press L or Yellow Button for Leaderboard", (180, 180, 200)),
-            ("Press ESC or Red Button to Quit", (150, 150, 170)),
+            ("Press L or Yellow Button for Leaderboard", (255, 215, 0)),
+            ("Press ESC or Red Button to Quit", (220, 60, 60)),
         ]
-        y = 150
+        y = 180
         for txt, col in opts:
-            r = self.f_sm.render(txt, True, col)
+            r = subtitle_font.render(txt, True, col)
             self.scr.blit(r, (SCREEN_WIDTH // 2 - r.get_width() // 2, y))
-            y += 32
+            y += 40
 
-        y = 290
-        self.scr.blit(self.f_sm.render("=== ENTITY GUIDE ===", True,
-                                       (180, 180, 200)),
-                      (SCREEN_WIDTH // 2 - 100, y))
-        y += 28
+        y = 320
+        self.scr.blit(subtitle_font.render("=== ENTITY GUIDE ===", True,
+                                            (180, 180, 200)),
+                    (SCREEN_WIDTH // 2 - 220, y))
+        y += 35
         guide = [
             ("HACKERS (red hoods) — WHACK! +2 pts", (220, 60, 60)),
             ("APT THREATS (purple, crown) — WHACK! +3 pts (fast!)",
@@ -1468,18 +1473,18 @@ class Game:
         for txt, col in guide:
             r = self.f_xs.render(txt, True, col)
             self.scr.blit(r, (SCREEN_WIDTH // 2 - r.get_width() // 2, y))
-            y += 21
+            y += 24
 
-        y += 8
+        y += 10
         for line in [
-            "Numpad 1-9 (or regular number keys) to whack:",
-            "  7  8  9       90 seconds  |  Combos at 3+ streak",
-            "  4  5  6       Boss every ~30s  |  Power-ups appear",
-            "  1  2  3       Watch for disguised spies & phishing!",
+            "Numpad 1-9 (or regular number keys) to whack:  ",
+            "7  8  9       60 seconds  |  Combos at 3+ streak   ",
+            "4  5  6       Boss every ~20s  |  Power-ups appear ",
+            "1  2  3       Watch for disguised spies & phishing!",
         ]:
             r = self.f_xs.render(line, True, (120, 120, 140))
             self.scr.blit(r, (SCREEN_WIDTH // 2 - r.get_width() // 2, y))
-            y += 20
+            y += 24
 
     def _draw_over(self):
         self.scr.fill(C_BG)
@@ -1509,9 +1514,9 @@ class Game:
         y += 12
         r1 = self.f_md.render("ENTER or Green Button to Play Again", True, C_TEXT)
         self.scr.blit(r1, (SCREEN_WIDTH // 2 - r1.get_width() // 2, y))
-        r2 = self.f_sm.render("M or Red Button for Menu", True, (150, 150, 170))
+        r2 = self.f_sm.render("M or Red Button for Menu", True, (220, 60, 60))
         self.scr.blit(r2, (SCREEN_WIDTH // 2 - r2.get_width() // 2, y + 38))
-        r3 = self.f_sm.render("L for Leaderboard", True, (180, 180, 200))
+        r3 = self.f_sm.render("L for Leaderboard", True, (255, 215, 0))
         self.scr.blit(r3, (SCREEN_WIDTH // 2 - r3.get_width() // 2, y + 66))
 
     def _draw_name(self):
@@ -1563,7 +1568,7 @@ class Game:
 
         y = SCREEN_HEIGHT - 70
         self.scr.blit(
-            self.f_sm.render("ESC, M, or Red Button for Menu", True, (150, 150, 170)),
+            self.f_sm.render("ESC, M, or Red Button for Menu", True, (220, 60, 60)),
             (SCREEN_WIDTH // 2 - 90, y))
         self.scr.blit(
             self.f_xs.render("Ctrl+Shift+C to Reset", True,
