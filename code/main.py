@@ -980,9 +980,9 @@ class Game:
         gy = 135
         for r in range(GRID_ROWS):
             for c in range(GRID_COLS):
-                x = gx + c * HOLE_WIDTH + (HOLE_WIDTH - 120) // 2
-                y = gy + r * HOLE_HEIGHT + (HOLE_HEIGHT - 100) // 2
-                self.holes.append(Hole(r, c, x, y, 120, 100))
+                x = gx + c * HOLE_WIDTH + (HOLE_WIDTH - 140) // 2
+                y = gy + r * HOLE_HEIGHT + (HOLE_HEIGHT - 120) // 2
+                self.holes.append(Hole(r, c, x, y, 140, 120))
 
     def _hole(self, r, c):
         for h in self.holes:
@@ -1514,9 +1514,9 @@ class Game:
         y += 12
         r1 = self.f_md.render("ENTER or Green Button to Play Again", True, C_TEXT)
         self.scr.blit(r1, (SCREEN_WIDTH // 2 - r1.get_width() // 2, y))
-        r2 = self.f_sm.render("M or Red Button for Menu", True, (220, 60, 60))
+        r2 = self.f_sm.render("M or Red or Red Button Button for Menu", True, (220, 60, 60))
         self.scr.blit(r2, (SCREEN_WIDTH // 2 - r2.get_width() // 2, y + 38))
-        r3 = self.f_sm.render("L for Leaderboard", True, (255, 215, 0))
+        r3 = self.f_sm.render("L or Yellow Button for Leaderboard", True, (255, 215, 0))
         self.scr.blit(r3, (SCREEN_WIDTH // 2 - r3.get_width() // 2, y + 66))
 
     def _draw_name(self):
@@ -1550,12 +1550,17 @@ class Game:
             r = self.f_md.render("No scores yet!", True, (150, 150, 170))
             self.scr.blit(r, (SCREEN_WIDTH // 2 - r.get_width() // 2, 140))
         else:
+            # Calculate the total width needed for the centered table
+            col_widths = [40, 140, 80, 70, 60, 60, 200]  # Approximate widths for each column
+            total_width = sum(col_widths)
+            start_x = (SCREEN_WIDTH - total_width) // 2
+            
             hdr = (f"{'#':<4}{'Name':<14}{'Score':<8}{'Combo':<7}"
-                   f"{'Boss':<6}{'Acc%':<6}{'Date'}")
+                f"{'Boss':<6}{'Acc%':<6}{'Date'}")
             self.scr.blit(self.f_sm.render(hdr, True, C_HOLE_BORDER),
-                          (40, 100))
-            pygame.draw.line(self.scr, C_HOLE_BORDER, (40, 125),
-                             (SCREEN_WIDTH - 40, 125))
+                        (start_x, 100))
+            pygame.draw.line(self.scr, C_HOLE_BORDER, (start_x, 125),
+                            (start_x + total_width, 125))
             y = 135
             for i, e in enumerate(self.lb.entries):
                 col = C_COMBO if i == 0 else (200, 200, 220)
@@ -1563,7 +1568,7 @@ class Game:
                         f"{e.get('score', 0):<8}{e.get('combo', 0):<7}"
                         f"{e.get('bosses', 0):<6}{e.get('acc', 0):<6}"
                         f"{e.get('date', '')}")
-                self.scr.blit(self.f_sm.render(line, True, col), (40, y))
+                self.scr.blit(self.f_sm.render(line, True, col), (start_x, y))
                 y += 28
 
         y = SCREEN_HEIGHT - 70
@@ -1591,13 +1596,22 @@ class Game:
         # Generate one procedurally
         sz = 64
         s = pygame.Surface((sz, sz), pygame.SRCALPHA)
-        pygame.draw.circle(s, (15, 15, 35), (32, 32), 30)
-        pygame.draw.circle(s, (0, 200, 255), (32, 32), 30, 2)
+        # Background circle
+        pygame.draw.circle(s, (10, 20, 15), (32, 32), 30)
+        pygame.draw.circle(s, (0, 180, 80), (32, 32), 30, 2)
+        # Hammer head
         pygame.draw.rect(s, (140, 140, 150), (18, 8, 28, 14), border_radius=3)
+        pygame.draw.rect(s, (180, 180, 190), (18, 8, 28, 14), 2, border_radius=3)
+        # Hammer handle
         pygame.draw.line(s, (160, 120, 60), (32, 22), (32, 52), 5)
-        pygame.draw.circle(s, (200, 40, 40), (32, 38), 8)
-        pygame.draw.rect(s, (0, 255, 0), (28, 36, 3, 2))
-        pygame.draw.rect(s, (0, 255, 0), (33, 36, 3, 2))
+        # Money bag instead of hacker head
+        pygame.draw.circle(s, (80, 140, 60), (32, 38), 8)
+        pygame.draw.circle(s, (60, 120, 40), (32, 38), 8, 1)
+        try:
+            f = pygame.font.SysFont("monospace", 10, bold=True)
+            s.blit(f.render("$", True, (255, 255, 0)), (28, 32))
+        except Exception:
+            pass
         return s
 
     # ---- main loop --------------------------------------------------------
