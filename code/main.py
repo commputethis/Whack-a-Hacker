@@ -1428,17 +1428,16 @@ class Game:
         self.title_p += 0.05
         p = abs(math.sin(self.title_p)) * 30
         tc = (int(min(255, C_TEXT[0] + p)), C_TEXT[1],
-              int(min(255, C_TEXT[2] + p)))
+            int(min(255, C_TEXT[2] + p)))
 
         title_font = pygame.font.SysFont("monospace", 64, bold=True)
         t = title_font.render(GAME_TITLE, True, tc)
         y = 40
         self.scr.blit(t, (SCREEN_WIDTH // 2 - t.get_width() // 2, y))
 
-
-        subtitle_font = pygame.font.SysFont("monospace", 36, bold=True) 
+        subtitle_font = pygame.font.SysFont("monospace", 36, bold=True)
         t2 = subtitle_font.render("Cyber Security Whack-a-Mole", True,
-                                  (100, 220, 150))
+                                (100, 220, 150))
         y += 68
         self.scr.blit(t2, (SCREEN_WIDTH // 2 - t2.get_width() // 2, y))
 
@@ -1457,27 +1456,52 @@ class Game:
         self.scr.blit(subtitle_font.render("========= ENTITY GUIDE =========", True,
                                             (180, 180, 200)),
                     (SCREEN_WIDTH // 2 - 350, y))
-        y += 35
-        guide = [
-            ("HACKERS (red hoods) — WHACK! +2 pts", (220, 60, 60)),
-            ("APT THREATS (purple, crown) — WHACK! +3 pts (fast!)",
-             (180, 50, 180)),
-            ("BOSS HACKER (large, fiery) — WHACK x3! +8 pts",
-             (255, 100, 0)),
-            ("SOCIAL ENGINEERS (green suit+mask) — WHACK! +3 pts",
-             (80, 200, 150)),
-            ("PHISHING EMAILS (red envelope+hook) — SKIP! -2 pts",
-             (220, 120, 40)),
-            ("FRIENDLIES (shield/admin/lock) — SKIP! -1 pt",
-             (50, 150, 255)),
-            ("POWER-UPS (golden glow) — COLLECT!", (255, 215, 0)),
-        ]
-        for txt, col in guide:
-            r = self.f_md.render(txt, True, col)
-            self.scr.blit(r, (SCREEN_WIDTH // 2 - r.get_width() // 2, y))
-            y += 30
+        y += 45
 
-        y += 40
+        SPR = 44   # sprite render size in pixels
+        LINE = 50  # row height
+        GAP = 14   # gap between sprites and text
+
+        guide = [
+            (["hacker"],
+            "HACKERS — WHACK! +2 pts",                          (220, 60, 60)),
+            (["apt"],
+            "APT THREATS — WHACK! +3 pts (fast!)",              (180, 50, 180)),
+            (["boss"],
+            "BOSS HACKER — WHACK x3! +8 pts",                   (255, 100, 0)),
+            (["social_engineer"],
+            "SOCIAL ENGINEERS — WHACK! +3 pts",                 (80, 200, 150)),
+            (["phishing"],
+            "PHISHING EMAILS — SKIP! -2 pts",                   (220, 120, 40)),
+            (["shield", "it_admin", "lock"],
+            "FRIENDLIES — SKIP! -1 pt",                         (50, 150, 255)),
+            (["pu_freeze", "pu_double", "pu_time_bonus", "pu_slow_mo"],
+            "POWER-UPS — COLLECT!",                             (255, 215, 0)),
+        ]
+
+        for sprite_keys, txt, col in guide:
+            sprites = []
+            for key in sprite_keys:
+                imgs = self.imgs.get(key, [])
+                if imgs:
+                    sprites.append(
+                        pygame.transform.smoothscale(imgs[0], (SPR, SPR)))
+
+            r = self.f_md.render(txt, True, col)
+
+            sprites_w = len(sprites) * SPR + max(0, len(sprites) - 1) * 4
+            total_w = sprites_w + GAP + r.get_width()
+            sx = SCREEN_WIDTH // 2 - total_w // 2
+
+            for i, spr in enumerate(sprites):
+                self.scr.blit(spr, (sx + i * (SPR + 4),
+                                    y + (LINE - SPR) // 2))
+
+            self.scr.blit(r, (sx + sprites_w + GAP,
+                            y + (LINE - r.get_height()) // 2))
+            y += LINE
+
+        y += 20
         for line in [
             "Numpad 1-9 (or regular number keys) to whack:  ",
             "7  8  9       60 seconds  |  Combos at 3+ streak   ",
