@@ -1432,29 +1432,31 @@ class Game:
 
         title_font = pygame.font.SysFont("monospace", 64, bold=True)
         t = title_font.render(GAME_TITLE, True, tc)
-        self.scr.blit(t, (SCREEN_WIDTH // 2 - t.get_width() // 2, 40))
+        y = 40
+        self.scr.blit(t, (SCREEN_WIDTH // 2 - t.get_width() // 2, y))
 
 
         subtitle_font = pygame.font.SysFont("monospace", 36, bold=True) 
         t2 = subtitle_font.render("Cyber Security Whack-a-Mole", True,
                                   (100, 220, 150))
-        self.scr.blit(t2, (SCREEN_WIDTH // 2 - t2.get_width() // 2, 98))
+        y += 68
+        self.scr.blit(t2, (SCREEN_WIDTH // 2 - t2.get_width() // 2, y))
 
         opts = [
             ("Press ENTER or Green Button to Start", C_TEXT),
             ("Press L or Yellow Button for Leaderboard", (255, 215, 0)),
             ("Press ESC or Red Button to Quit", (220, 60, 60)),
         ]
-        y = 180
+        y += 80
         for txt, col in opts:
             r = subtitle_font.render(txt, True, col)
             self.scr.blit(r, (SCREEN_WIDTH // 2 - r.get_width() // 2, y))
             y += 40
 
-        y = 320
-        self.scr.blit(subtitle_font.render("=== ENTITY GUIDE ===", True,
+        y += 40
+        self.scr.blit(subtitle_font.render("========= ENTITY GUIDE =========", True,
                                             (180, 180, 200)),
-                    (SCREEN_WIDTH // 2 - 220, y))
+                    (SCREEN_WIDTH // 2 - 350, y))
         y += 35
         guide = [
             ("HACKERS (red hoods) — WHACK! +2 pts", (220, 60, 60)),
@@ -1471,20 +1473,20 @@ class Game:
             ("POWER-UPS (golden glow) — COLLECT!", (255, 215, 0)),
         ]
         for txt, col in guide:
-            r = self.f_xs.render(txt, True, col)
+            r = self.f_md.render(txt, True, col)
             self.scr.blit(r, (SCREEN_WIDTH // 2 - r.get_width() // 2, y))
-            y += 24
+            y += 30
 
-        y += 10
+        y += 40
         for line in [
             "Numpad 1-9 (or regular number keys) to whack:  ",
             "7  8  9       60 seconds  |  Combos at 3+ streak   ",
             "4  5  6       Boss every ~20s  |  Power-ups appear ",
             "1  2  3       Watch for disguised spies & phishing!",
         ]:
-            r = self.f_xs.render(line, True, (120, 120, 140))
+            r = self.f_md.render(line, True, (120, 120, 140))
             self.scr.blit(r, (SCREEN_WIDTH // 2 - r.get_width() // 2, y))
-            y += 24
+            y += 30
 
     def _draw_over(self):
         self.scr.fill(C_BG)
