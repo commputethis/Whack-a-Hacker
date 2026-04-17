@@ -14,7 +14,6 @@ import sys
 import time
 import math
 import array
-import pygame.display
 from pathlib import Path
 
 # ===========================================================================
@@ -36,6 +35,7 @@ LEADERBOARD_FILE = os.path.join(_DATA_DIR, "leaderboard.json")
 # Look for user assets first, fall back to bundled assets
 _USER_ASSETS = os.path.join(_DATA_DIR, "assets")
 _BUNDLED_ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
+ASSETS_DIR = _USER_ASSETS if os.path.exists(_USER_ASSETS) else _BUNDLED_ASSETS
 
 GRID_COLS = 3
 GRID_ROWS = 3
@@ -65,8 +65,8 @@ RAMP_INTERVAL = 15       # seconds between difficulty bumps
 SPEED_REDUCTION_MS = 80  # ms shaved off show-time per bump
 
 # ---- Boss ----
-BOSS_FIRST_SPAWN = 20    # seconds into the game
-BOSS_SPAWN_INTERVAL = 15  # seconds between bosses after the first
+BOSS_FIRST_SPAWN = 15    # seconds into the game
+BOSS_SPAWN_INTERVAL = 20  # seconds between bosses after the first
 BOSS_HITS_REQUIRED = 3
 BOSS_SHOW_TIME_MULT = 2.5
 
@@ -92,16 +92,16 @@ SPAWN_WEIGHTS = {
 
 # ---- Optional image overrides (place PNGs in assets/) ----
 MOLE_IMAGE_PATHS = {
-    "hacker": ["hacker1.png", "hacker2.png", "hacker3.png"],
-    "apt": ["apt.png"],
-    "boss": ["boss.png"],
-    "social_engineer": ["social_eng.png"],
+    "hacker": [f"{ASSETS_DIR}/hacker1.png", f"{ASSETS_DIR}/hacker2.png", f"{ASSETS_DIR}/hacker3.png"],
+    "apt": [f"{ASSETS_DIR}/apt.png"],
+    "boss": [f"{ASSETS_DIR}/boss.png"],
+    "social_engineer": [f"{ASSETS_DIR}/social_eng.png"],
 }
 FRIENDLY_IMAGE_PATHS = {
-    "shield": ["shield.png"],
-    "it_admin": ["it_admin.png"],
-    "lock": ["lock.png"],
-    "phishing": ["phishing.png"],
+    "shield": [f"{ASSETS_DIR}/shield.png"],
+    "it_admin": [f"{ASSETS_DIR}/it_admin.png"],
+    "lock": [f"{ASSETS_DIR}/lock.png"],
+    "phishing": [f"{ASSETS_DIR}/phishing.png"],
 }
 
 # ---- Colors ----
@@ -830,10 +830,10 @@ class Game:
         self.clock = pygame.time.Clock()
 
         self.f_lg = pygame.font.SysFont("monospace", 48, bold=True)
-        self.f_md = pygame.font.SysFont("monospace", 28, bold=True)
-        self.f_sm = pygame.font.SysFont("monospace", 20)
-        self.f_xs = pygame.font.SysFont("monospace", 16)
-        self.f_xx = pygame.font.SysFont("monospace", 12)
+        self.f_md = pygame.font.SysFont("monospace", 36, bold=True)
+        self.f_sm = pygame.font.SysFont("monospace", 28)
+        self.f_xs = pygame.font.SysFont("monospace", 20)
+        self.f_xx = pygame.font.SysFont("monospace", 16)
 
         self.imgs = {}
         self.snds = {}
@@ -1504,9 +1504,9 @@ class Game:
         y += 20
         for line in [
             "Numpad 1-9 (or regular number keys) to whack:  ",
-            "7  8  9       60 seconds  |  Combos at 3+ streak   ",
-            "4  5  6       Boss every ~20s  |  Power-ups appear ",
-            "1  2  3       Watch for disguised spies & phishing!",
+            "7  8  9    60 seconds  |  Combos at 3+ streak   ",
+            "4  5  6    Boss every ~20s  |  Power-ups appear ",
+            "1  2  3    Watch for disguised spies & phishing!",
         ]:
             r = self.f_md.render(line, True, (120, 120, 140))
             self.scr.blit(r, (SCREEN_WIDTH // 2 - r.get_width() // 2, y))
@@ -1533,9 +1533,9 @@ class Game:
         ]
         y = 160
         for s in stats:
-            r = self.f_sm.render(s, True, (180, 180, 200))
+            r = self.f_md.render(s, True, (180, 180, 200))
             self.scr.blit(r, (SCREEN_WIDTH // 2 - r.get_width() // 2, y))
-            y += 26
+            y += 35
 
         y += 12
         r1 = self.f_md.render("ENTER or Green Button to Play Again", True, C_TEXT)
@@ -1553,7 +1553,7 @@ class Game:
         self.scr.blit(t2, (SCREEN_WIDTH // 2 - t2.get_width() // 2, 130))
         self.scr.blit(
             self.f_md.render("Enter your name:", True, (200, 200, 220)),
-            (SCREEN_WIDTH // 2 - 120, 220))
+            (SCREEN_WIDTH // 2 - 200, 220))
 
         self.cur_blink += 0.08
         cur = "|" if math.sin(self.cur_blink) > 0 else " "
@@ -1563,9 +1563,9 @@ class Game:
         nt = self.f_lg.render(self.pname + cur, True, C_SCORE)
         self.scr.blit(nt, (SCREEN_WIDTH // 2 - nt.get_width() // 2, 278))
         self.scr.blit(
-            self.f_sm.render("ENTER to confirm (max 12 chars)", True,
+            self.f_sm.render("ENTER to confirm (max 20 chars)", True,
                              (130, 130, 150)),
-            (SCREEN_WIDTH // 2 - 160, 350))
+            (SCREEN_WIDTH // 2 - 280, 350))
 
     def _draw_lb(self):
         self.scr.fill(C_BG)
@@ -1577,34 +1577,35 @@ class Game:
             self.scr.blit(r, (SCREEN_WIDTH // 2 - r.get_width() // 2, 140))
         else:
             # Calculate the total width needed for the centered table
-            col_widths = [40, 140, 80, 70, 60, 60, 200]  # Approximate widths for each column
+            col_widths = [120, 400, 160, 180, 150, 150, 320]  # Approximate widths for each column
             total_width = sum(col_widths)
             start_x = (SCREEN_WIDTH - total_width) // 2
-            
-            hdr = (f"{'#':<4}{'Name':<14}{'Score':<8}{'Combo':<7}"
-                f"{'Boss':<6}{'Acc%':<6}{'Date'}")
-            self.scr.blit(self.f_sm.render(hdr, True, C_HOLE_BORDER),
-                        (start_x, 100))
-            pygame.draw.line(self.scr, C_HOLE_BORDER, (start_x, 125),
-                            (start_x + total_width, 125))
             y = 135
+            
+            hdr = (f"{'#':<4}{'Name':<20}{'Score':<8}{'Combo':<7}"
+                f"{'Boss':<6}{'Acc%':<6}{'Date'}")
+            self.scr.blit(self.f_md.render(hdr, True, C_HOLE_BORDER),
+                        (start_x, 100))
+            pygame.draw.line(self.scr, C_HOLE_BORDER, (start_x, y),
+                            (start_x + total_width, y))
+            y += 5
             for i, e in enumerate(self.lb.entries):
                 col = C_COMBO if i == 0 else (200, 200, 220)
-                line = (f"{i + 1:<4}{e.get('name', '???'):<14}"
+                line = (f"{i + 1:<4}{e.get('name', '???'):<20}"
                         f"{e.get('score', 0):<8}{e.get('combo', 0):<7}"
                         f"{e.get('bosses', 0):<6}{e.get('acc', 0):<6}"
                         f"{e.get('date', '')}")
-                self.scr.blit(self.f_sm.render(line, True, col), (start_x, y))
-                y += 28
+                self.scr.blit(self.f_md.render(line, True, col), (start_x, y))
+                y += 35
 
-        y = SCREEN_HEIGHT - 70
+        y = SCREEN_HEIGHT - 200
         self.scr.blit(
-            self.f_sm.render("ESC, M, or Red Button for Menu", True, (220, 60, 60)),
-            (SCREEN_WIDTH // 2 - 90, y))
+            self.f_md.render("ESC, M, or Red Button for Menu", True, (220, 60, 60)),
+            (SCREEN_WIDTH // 2 - 300, y))
         self.scr.blit(
-            self.f_xs.render("Ctrl+Shift+C to Reset", True,
-                             (100, 100, 120)),
-            (SCREEN_WIDTH // 2 - 80, y + 28))
+            self.f_md.render("Press ENTER or Green Button to Start", True,
+                             C_TEXT),
+            (SCREEN_WIDTH // 2 - 375, y + 40))
     
     def _make_window_icon(self):
         # Try loading external icon first
@@ -1703,12 +1704,16 @@ class Game:
                             self.state = "over"
                         elif ev.key == pygame.K_BACKSPACE:
                             self.pname = self.pname[:-1]
-                        elif (len(self.pname) < 12
+                        elif (len(self.pname) < 20
                               and ev.unicode.isprintable()
                               and ev.unicode):
                             self.pname += ev.unicode
 
                     elif self.state == "lb":
+                        if ev.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+                            self._reset()
+                            self.state = "play"
+                            self._play("start")
                         if ev.key in (pygame.K_ESCAPE, pygame.K_m):
                             self.state = "menu"
 
