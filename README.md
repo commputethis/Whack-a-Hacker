@@ -13,7 +13,7 @@ A fast-paced, cyber security themed whack-a-mole game built with Python and Pyga
 - **Combo System**: Chain successful hits for bonus points.
 - **Procedural Assets**: All sprites and sound effects are generated in code — no external files required.
 - **Persistent Leaderboard**: Tracks high scores with stats like accuracy and bosses defeated.
-- **Customizable Themes**: Easy to re-theme by changing image paths and colors in the configuration.
+- **Customizable Themes**: Easy to re-theme by changing image paths, colors, and text in the configuration.
 - **Mouse Support**: Click to whack with a custom hammer cursor that animates on click.
 - **DIY Hardware Support**: Build your own physical button box for an arcade experience (see DIY Keypad section).
 
@@ -45,7 +45,193 @@ A fast-paced, cyber security themed whack-a-mole game built with Python and Pyga
 - **ESC**: Quit game / Return to menu
 - **Ctrl+Shift+C**: Reset leaderboard
 
-## DIY Hardware Keypad (Optional)
+## Customization
+
+The game is designed to be easily re-themed. You can customize the game in two ways:
+
+### 1. Theme Configuration File
+
+Create a `theme_config.json` file in your game data directory to customize text, labels, and descriptions without modifying the code:
+
+```bash
+# Create the config directory if it doesn't exist
+mkdir -p ~/.local/share/whack-a-hacker
+
+# Create your custom theme configuration
+nano ~/.local/share/whack-a-hacker/theme_config.json
+```
+
+Example `theme_config.json`:
+
+```json
+{
+  "theme": {
+    "title": "Whack-a-Mole!",
+    "subtitle": "A Whack-a-Mole",
+    "game_over_title": "GAME OVER",
+    "high_score_title": "NEW HIGH SCORE!",
+    "score_label": "Score:"
+  },
+  "enemies": {
+    "hacker": "MOLE",
+    "apt": "GOLDEN MOLE",
+    "boss": "KING MOLE",
+    "social_engineer": "DISGUISED MOLE"
+  },
+  "friendlies": {
+    "shield": "FLOWER",
+    "it_admin": "GARDENER",
+    "lock": "SHOVEL",
+    "phishing": "WEED"
+  },
+  "powerups": {
+    "freeze": "FREEZE",
+    "double": "DOUBLE POINTS",
+    "time_bonus": "TIME BONUS",
+    "slow_mo": "SLOW MOTION"
+  },
+  "descriptions": {
+    "hacker": "WHACK! +2 pts",
+    "apt": "WHACK! +3 pts (fast!)",
+    "boss": "WHACK x3! +8 pts",
+    "social_engineer": "WHACK! +3 pts",
+    "phishing": "SKIP! -2 pts",
+    "shield": "SKIP! -1 pt",
+    "it_admin": "SKIP! -1 pt",
+    "lock": "SKIP! -1 pt"
+  },
+  "messages": {
+    "boss_spawn": "!! KING MOLE !!",
+    "boss_hit": "BOSS HIT! ({hits_left} left)",
+    "boss_ko": "BOSS K.O.! +{pts}",
+    "hit_hacker": "+{pts}",
+    "hit_apt": "+{pts}",
+    "hit_social": "SPY CAUGHT! +{pts}",
+    "hit_phishing": "WEED TRAP! {pts}",
+    "hit_friendly": "FRIENDLY HIT! {pts}",
+    "combo": "COMBO x{combo}! +{pts}",
+    "freeze": "FREEZE!",
+    "double": "DOUBLE POINTS!",
+    "time_bonus": "+{seconds} SECONDS!",
+    "slow_mo": "SLOW MOTION!",
+    "speed_up": "SPEED UP!"
+  },
+  "ui_labels": {
+    "stats": {
+      "hits": "Moles Whacked",
+      "missed": "Moles Missed",
+      "f_hits": "Friendlies Hit",
+      "ph_hits": "Weeds Sprung",
+      "se_hits": "Spies Caught",
+      "bosses_k": "Bosses Defeated",
+      "pu_got": "Power-ups Collected",
+      "max_combo": "Max Combo",
+      "accuracy": "Accuracy"
+    },
+    "buttons": {
+      "start": "Press ENTER or Green Button to Start",
+      "leaderboard": "Press L or Yellow Button for Leaderboard",
+      "quit": "Press ESC or Red Button to Quit",
+      "play_again": "ENTER or Green Button to Play Again",
+      "menu": "M or Red Button for Menu",
+      "view_leaderboard": "L or Yellow Button for Leaderboard",
+      "enter_name": "Enter your name:",
+      "confirm_name": "ENTER to confirm (max 20 chars)"
+    }
+  }
+}
+```
+
+**Theme Configuration Features:**
+
+- **No Code Changes Required**: Customize all text elements without editing the source code
+- **Persistent Settings**: Your customizations are preserved between game sessions
+- **Complete Control**: Change titles, labels, descriptions, and messages
+- **Easy Sharing**: Share your theme by simply copying the JSON file
+- **Fallback Support**: If any fields are missing, the game uses default values
+
+**Theme Configuration Location:**
+
+- Linux: `~/.local/share/whack-a-hacker/theme_config.json`
+- The game will create this directory automatically if it doesn't exist
+
+### 2. Direct Code Customization
+
+For more advanced customization, you can edit the configuration section at the top of `main.py`:
+
+```python
+# Change game title and duration
+GAME_TITLE = "Whack-a-Mole"
+GAME_DURATION = 90
+
+# Define custom images (optional)
+MOLE_IMAGE_PATHS = {
+    "hacker": ["assets/my_hacker1.png", "assets/my_hacker2.png"],
+    "boss": ["assets/my_boss.png"],
+}
+FRIENDLY_IMAGE_PATHS = {
+    "shield": ["assets/my_shield.png"],
+    "lock": ["assets/my_lock.png"],
+}
+
+# Adjust colors
+C_BG = (15, 15, 35)
+C_TEXT = (0, 255, 200)
+```
+
+### Custom Sprites
+
+To use custom sprites, create an `assets` folder in your data directory and drop in
+your PNG files (80x80 pixels recommended):
+
+```bash
+mkdir -p ~/.local/share/whack-a-hacker/assets
+```
+
+The game checks for images in this order:
+
+1. ~/.local/share/whack-a-hacker/assets/ (user customizations)
+2. Bundled assets (inside the AppImage or source directory)
+3. Procedurally generated sprites (always available as fallback)  
+
+#### Supported filenames
+
+- Enemies:
+  - hacker1.png, hacker2.png, hacker3.png
+  - apt.png
+  - boss.png
+  - social_eng.png  
+
+- Friendlies:
+  - shield.png
+  - it_admin.png
+  - lock.png
+  - phishing.png
+
+You only need to provide the images you want to override. Any missing images will use the procedurally generated sprites.
+
+#### Theme Colors
+
+Edit the color configuration at the top of main.py:
+
+``` python
+C_BG = (15, 15, 35)
+C_TEXT = (0, 255, 200)
+```
+
+Note: Color changes require editing main.py directly, which means
+rebuilding the AppImage if you're using one. Sprite customization does not require a rebuild.
+
+_No AppImage rebuild needed to swap sprites or use theme configuration. Users just drop PNGs into `~/.local/share/whack-a-hacker/assets/` and create a `theme_config.json` file._
+
+### Adding Custom Assets
+
+1. Create an `assets/` folder in the game directory
+2. Add your PNG images (80x80 pixels recommended)
+3. Update the image path variables in the configuration
+4. The game will load your images if they exist, otherwise uses procedural sprites
+
+## DIY Hardware Keypad/Gamepad (Optional)
 
 For an enhanced arcade experience, you can build your own physical button box that connects to your computer via USB and simulates key presses. This provides a more tactile and responsive gaming experience.
 
@@ -255,17 +441,17 @@ Download the appropriate AppImage for your architecture:
 #### For x86_64 (Intel/AMD 64-bit PCs)
 
 ```bash
-wget https://github.com/commputethis/Whack-a-Hacker/releases/download/v1.01/whack-a-hacker-x86_64_v1.01.AppImage
-chmod +x whack-a-hacker-x86_64.AppImage
-./whack-a-hacker-x86_64.AppImage
+wget https://github.com/commputethis/Whack-a-Hacker/releases/download/{Version tag}/whack-a-hacker-x86_64_{Version tag}.AppImage
+chmod +x whack-a-hacker-x86_64_{Version tag}.AppImage
+./whack-a-hacker-x86_64_{Version tag}.AppImage
 ```
 
 #### For ARM64 (Raspberry Pi 4/5, ARM PCs)
 
 ```bash
-wget https://github.com/commputethis/Whack-a-Hacker/releases/download/v1.01/whack-a-hacker-aarch64_v1.01.AppImage
-chmod +x whack-a-hacker-aarch64.AppImage
-./whack-a-hacker-aarch64.AppImage
+wget https://github.com/commputethis/Whack-a-Hacker/releases/download/{Version tag}/whack-a-hacker-aarch64_{Version tag}.AppImage
+chmod +x whack-a-hacker-aarch64_{Version tag}.AppImage
+./whack-a-hacker-aarch64_{Version tag}.AppImage
 ```
 
 **AppImage Features:**
@@ -305,82 +491,6 @@ chmod +x whack-a-hacker-aarch64.AppImage
 - Moles appear for shorter durations as difficulty ramps up
 - Boss hackers appear at 25 seconds, then every 30 seconds
 
-## Customization
-
-The game is designed to be easily re-themed. Edit the configuration section at the top of `main.py`:
-
-```python
-# Change game title and duration
-GAME_TITLE = "Whack-a-Mole"
-GAME_DURATION = 90
-
-# Define custom images (optional)
-MOLE_IMAGE_PATHS = {
-    "hacker": ["assets/my_hacker1.png", "assets/my_hacker2.png"],
-    "boss": ["assets/my_boss.png"],
-}
-FRIENDLY_IMAGE_PATHS = {
-    "shield": ["assets/my_shield.png"],
-    "lock": ["assets/my_lock.png"],
-}
-
-# Adjust colors
-C_BG = (15, 15, 35)
-C_TEXT = (0, 255, 200)
-```
-
-### Custom Sprites
-
-To use custom sprites, create an `assets` folder in your data directory and drop in
-your PNG files (80x80 pixels recommended):
-
-```bash
-mkdir -p ~/.local/share/whack-a-hacker/assets
-```
-
-The game checks for images in this order:
-
-1. ~/.local/share/whack-a-hacker/assets/ (user customizations)
-2. Bundled assets (inside the AppImage or source directory)
-3. Procedurally generated sprites (always available as fallback)  
-
-#### Supported filenames
-
-- Enemies:
-  - hacker1.png, hacker2.png, hacker3.png
-  - apt.png
-  - boss.png
-  - social_eng.png  
-
-- Friendlies:
-  - shield.png
-  - it_admin.png
-  - lock.png
-  - phishing.png
-
-You only need to provide the images you want to override. Any missing images will use the procedurally generated sprites.
-
-#### Theme Colors
-
-Edit the color configuration at the top of main.py:
-
-``` python
-C_BG = (15, 15, 35)
-C_TEXT = (0, 255, 200)
-```
-
-Note: Color changes require editing main.py directly, which means
-rebuilding the AppImage if you're using one. Sprite customization does not require a rebuild.
-
-_No AppImage rebuild needed to swap sprites. Users just drop PNGs into `~/.local/share/whack-a-hacker/assets/` and restart the game._
-
-### Adding Custom Assets
-
-1. Create an `assets/` folder in the game directory
-2. Add your PNG images (80x80 pixels recommended)
-3. Update the image path variables in the configuration
-4. The game will load your images if they exist, otherwise uses procedural sprites
-
 ## Leaderboard
 
 High scores are saved to `~/.local/share/whack-a-hacker/leaderboard.json` on your system. The leaderboard tracks:
@@ -417,11 +527,17 @@ The game runs at a fixed 1920x1080 resolution and 60 FPS. If you experience slow
 - **"Cannot open shared object file"**: The AppImage includes all required libraries; this error usually means you're on a very old Linux distribution
 - **Leaderboard not saving**: Ensure `~/.local/share/whack-a-hacker/` exists and is writable
 
-### DIY Keypad Issues
+### DIY Keypad/Gamepad Issues
 
 - **Button not responding**: Check wiring and try a different GPIO pin
 - **Wrong key being sent**: Verify the keycode constants in the code
 - **Computer not recognizing device**: Ensure the ESP32-S3 is properly programmed with USB HID support
+
+### Theme Configuration Not Working
+
+- **File not found**: Ensure the file is at `~/.local/share/whack-a-hacker/theme_config.json`
+- **JSON syntax error**: Validate your JSON with `python3 -m json.tool ~/.local/share/whack-a-hacker/theme_config.json`
+- **Changes not applying**: Restart the game after modifying the configuration file
 
 ## Building Your Own AppImage
 
@@ -455,4 +571,4 @@ This project is released under the MIT License. Feel free to modify and redistri
 - Sound effects generated using mathematical waveforms
 - Sprites generated procedurally using Pygame drawing functions
 - Inspired by classic arcade whack-a-mole games
-- DIY keypad implementation using ESP32-S3 with USB HID support
+- DIY keypad/gamepad implementation using ESP32-S3 with USB HID support

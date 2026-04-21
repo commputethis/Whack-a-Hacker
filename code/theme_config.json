@@ -1,0 +1,76 @@
+{
+  "theme": {
+    "title": "Whack-a-Hacker!",
+    "subtitle": "Cyber Security Whack-a-Mole",
+    "game_over_title": "GAME OVER",
+    "high_score_title": "NEW HIGH SCORE!",
+    "score_label": "Score:"
+  },
+  "enemies": {
+    "hacker": "HACKER",
+    "apt": "APT THREAT",
+    "boss": "BOSS HACKER",
+    "social_engineer": "SOCIAL ENGINEER"
+  },
+  "friendlies": {
+    "shield": "SHIELD",
+    "it_admin": "IT ADMIN",
+    "lock": "LOCK",
+    "phishing": "PHISHING EMAIL"
+  },
+  "powerups": {
+    "freeze": "FREEZE",
+    "double": "DOUBLE POINTS",
+    "time_bonus": "TIME BONUS",
+    "slow_mo": "SLOW MOTION"
+  },
+  "descriptions": {
+    "hacker": "WHACK! +2 pts",
+    "apt": "WHACK! +3 pts (fast!)",
+    "boss": "WHACK x3! +8 pts",
+    "social_engineer": "WHACK! +3 pts",
+    "phishing": "SKIP! -2 pts",
+    "shield": "SKIP! -1 pt",
+    "it_admin": "SKIP! -1 pt",
+    "lock": "SKIP! -1 pt"
+  },
+  "messages": {
+    "boss_spawn": "!! BOSS HACKER !!",
+    "boss_hit": "BOSS HIT! ({hits_left} left)",
+    "boss_ko": "BOSS K.O.! +{pts}",
+    "hit_hacker": "+{pts}",
+    "hit_apt": "+{pts}",
+    "hit_social": "SPY CAUGHT! +{pts}",
+    "hit_phishing": "PHISHING TRAP! {pts}",
+    "hit_friendly": "FRIENDLY HIT! {pts}",
+    "combo": "COMBO x{combo}! +{pts}",
+    "freeze": "FREEZE!",
+    "double": "DOUBLE POINTS!",
+    "time_bonus": "+{seconds} SECONDS!",
+    "slow_mo": "SLOW MOTION!",
+    "speed_up": "SPEED UP!"
+  },
+  "ui_labels": {
+    "stats": {
+      "hits": "Hackers Whacked",
+      "missed": "Hackers Missed",
+      "f_hits": "Friendlies Hit",
+      "ph_hits": "Phishing Traps Sprung",
+      "se_hits": "Spies Caught",
+      "bosses_k": "Bosses Defeated",
+      "pu_got": "Power-ups Collected",
+      "max_combo": "Max Combo",
+      "accuracy": "Accuracy"
+    },
+    "buttons": {
+      "start": "Press ENTER or Green Button to Start",
+      "leaderboard": "Press L or Yellow Button for Leaderboard",
+      "quit": "Press ESC or Red Button to Quit",
+      "play_again": "ENTER or Green Button to Play Again",
+      "menu": "M or Red Button for Menu",
+      "view_leaderboard": "L or Yellow Button for Leaderboard",
+      "enter_name": "Enter your name:",
+      "confirm_name": "ENTER to confirm (max 20 chars)"
+    }
+  }
+}

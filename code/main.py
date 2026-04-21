@@ -837,6 +837,10 @@ class Game:
 
         self.imgs = {}
         self.snds = {}
+        
+        # Load theme configuration
+        self._load_theme_config()
+        
         self._load_sprites()
         self._load_sounds()
 
@@ -853,6 +857,123 @@ class Game:
         self.last_tick_s = -1
 
     # ---- asset loading ----------------------------------------------------
+
+    def _load_theme_config(self):
+        """Load theme configuration from JSON file"""
+        config_path = os.path.join(_DATA_DIR, "theme_config.json")
+        
+        # Default configuration
+        default_config = {
+            "theme": {
+                "title": "Whack-a-Hacker!",
+                "subtitle": "Cyber Security Whack-a-Mole",
+                "game_over_title": "GAME OVER",
+                "high_score_title": "NEW HIGH SCORE!",
+                "score_label": "Score:"
+            },
+            "enemies": {
+                "hacker": "HACKER",
+                "apt": "APT THREAT",
+                "boss": "BOSS HACKER",
+                "social_engineer": "SOCIAL ENGINEER"
+            },
+            "friendlies": {
+                "shield": "SHIELD",
+                "it_admin": "IT ADMIN",
+                "lock": "LOCK",
+                "phishing": "PHISHING EMAIL"
+            },
+            "powerups": {
+                "freeze": "FREEZE",
+                "double": "DOUBLE POINTS",
+                "time_bonus": "TIME BONUS",
+                "slow_mo": "SLOW MOTION"
+            },
+            "descriptions": {
+                "hacker": "WHACK! +2 pts",
+                "apt": "WHACK! +3 pts (fast!)",
+                "boss": "WHACK x3! +8 pts",
+                "social_engineer": "WHACK! +3 pts",
+                "phishing": "SKIP! -2 pts",
+                "shield": "SKIP! -1 pt",
+                "it_admin": "SKIP! -1 pt",
+                "lock": "SKIP! -1 pt"
+            },
+            "messages": {
+                "boss_spawn": "!! BOSS HACKER !!",
+                "boss_hit": "BOSS HIT! ({hits_left} left)",
+                "boss_ko": "BOSS K.O.! +{pts}",
+                "hit_hacker": "+{pts}",
+                "hit_apt": "+{pts}",
+                "hit_social": "SPY CAUGHT! +{pts}",
+                "hit_phishing": "PHISHING TRAP! {pts}",
+                "hit_friendly": "FRIENDLY HIT! {pts}",
+                "combo": "COMBO x{combo}! +{pts}",
+                "freeze": "FREEZE!",
+                "double": "DOUBLE POINTS!",
+                "time_bonus": "+{seconds} SECONDS!",
+                "slow_mo": "SLOW MOTION!",
+                "speed_up": "SPEED UP!"
+            },
+            "ui_labels": {
+                "stats": {
+                    "hits": "Hackers Whacked",
+                    "missed": "Hackers Missed",
+                    "f_hits": "Friendlies Hit",
+                    "ph_hits": "Phishing Traps Sprung",
+                    "se_hits": "Spies Caught",
+                    "bosses_k": "Bosses Defeated",
+                    "pu_got": "Power-ups Collected",
+                    "max_combo": "Max Combo",
+                    "accuracy": "Accuracy"
+                },
+                "buttons": {
+                    "start": "Press ENTER or Green Button to Start",
+                    "leaderboard": "Press L or Yellow Button for Leaderboard",
+                    "quit": "Press ESC or Red Button to Quit",
+                    "play_again": "ENTER or Green Button to Play Again",
+                    "menu": "M or Red Button for Menu",
+                    "view_leaderboard": "L or Yellow Button for Leaderboard",
+                    "enter_name": "Enter your name:",
+                    "confirm_name": "ENTER to confirm (max 20 chars)"
+                }
+            }
+        }
+        
+        # Initialize with defaults
+        self.config = default_config
+        
+        # Try to load from file
+        try:
+            if os.path.exists(config_path):
+                with open(config_path, 'r') as f:
+                    file_config = json.load(f)
+                    # Update the config with file values
+                    self._update_config(self.config, file_config)
+        except (json.JSONDecodeError, IOError):
+            # If file doesn't exist or is invalid, use defaults
+            pass
+
+        # Update window title with theme configuration
+        pygame.display.set_caption(self.config["theme"]["title"])
+
+    def _update_config(self, target, source):
+        """Update target dictionary with values from source"""
+        for key, value in source.items():
+            if key in target and isinstance(target[key], dict) and isinstance(value, dict):
+                self._update_config(target[key], value)
+            else:
+                target[key] = value
+
+    def _deep_merge(self, default, custom):
+        """Deep merge two dictionaries"""
+        result = default.copy()
+        for key, value in custom.items():
+            if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+                result[key] = self._deep_merge(result[key], value)
+            else:
+                result[key] = value
+        return result
 
     def _try_img(self, filename, sz, fallback):
         """Check user assets first, then bundled assets, then use fallback."""
@@ -1046,7 +1167,7 @@ class Game:
         if self.eff.on("freeze"):
             hole.frozen = True
         self.boss_up = True
-        self._flash("!! BOSS HACKER !!", (255, 100, 0), 1500)
+        self._flash(self.config["messages"]["boss_spawn"], (255, 100, 0), 1500)
 
     def _spawn_pu(self):
         if self.pu_up:
@@ -1094,7 +1215,7 @@ class Game:
         if tag == "boss_hit":
             self._play("boss_hit")
             self.ptcl.emit(px, py, (255, 150, 0), 8)
-            self._flash(f"BOSS HIT! ({h.boss_hp} left)", (255, 150, 0), 600)
+            self._flash(self.config["messages"]["boss_hit"].format(hits_left=h.boss_hp), (255, 150, 0), 600)
 
         elif tag == "boss_ko":
             pts = SCORE_HIT_BOSS * mul
@@ -1106,7 +1227,7 @@ class Game:
             self.boss_up = False
             self._play("boss_ko")
             self.ptcl.burst(px, py, C_COMBO, 30)
-            self._flash(f"BOSS K.O.! +{pts}", C_COMBO, 1500)
+            self._flash(self.config["messages"]["boss_ko"].format(pts=pts), C_COMBO, 1500)
 
         elif tag == "powerup":
             self._activate_pu(detail)
@@ -1126,14 +1247,14 @@ class Game:
             if detail == "social_engineer":
                 self.se_hits += 1
                 self._play("social")
-                self._flash(f"SPY CAUGHT! +{pts}", (100, 255, 200), 800)
+                self._flash(self.config["messages"]["hit_social"].format(pts=pts), (100, 255, 200), 800)
             if self.combo >= COMBO_THRESHOLD:
                 bonus = COMBO_BONUS * mul
                 pts += bonus
                 self._play("combo", self.combo)
-                self._flash(f"COMBO x{self.combo}! +{pts}", C_COMBO, 600)
+                self._flash(self.config["messages"]["combo"].format(combo=self.combo, pts=pts), C_COMBO, 600)
             elif detail != "social_engineer":
-                self._flash(f"+{pts}", C_TEXT, 500)
+                self._flash(self.config["messages"]["hit_hacker"].format(pts=pts), C_TEXT, 500)
             self.score += pts
             if detail == "social_engineer":
                 self.ptcl.emit(px, py, (100, 255, 200), 15)
@@ -1146,12 +1267,12 @@ class Game:
                 pts = SCORE_HIT_PHISHING
                 self.ph_hits += 1
                 self._play("phishing")
-                self._flash(f"PHISHING TRAP! {pts}", C_WARNING, 1000)
+                self._flash(self.config["messages"]["hit_phishing"].format(pts=pts), C_WARNING, 1000)
             else:
                 pts = SCORE_HIT_FRIENDLY
                 self.f_hits += 1
                 self._play("friendly")
-                self._flash(f"FRIENDLY HIT! {pts}", C_WARNING, 800)
+                self._flash(self.config["messages"]["hit_friendly"].format(pts=pts), C_WARNING, 800)
             self.score += pts
             self.combo = 0
             self.ptcl.emit(px, py, (255, 50, 50), 8)
@@ -1162,17 +1283,17 @@ class Game:
             for h in self.holes:
                 if h.active:
                     h.frozen = True
-            self._flash("FREEZE!", C_FREEZE, 1000)
+            self._flash(self.config["messages"]["freeze"], C_FREEZE, 1000)
             self._play("freeze")
         elif pt == "double":
             self.eff.activate("double", POWERUP_DOUBLE_DUR)
-            self._flash("DOUBLE POINTS!", C_DOUBLE, 1000)
+            self._flash(self.config["messages"]["double"], C_DOUBLE, 1000)
         elif pt == "time_bonus":
             self.time_left += POWERUP_TIME_BONUS
-            self._flash(f"+{POWERUP_TIME_BONUS} SECONDS!", C_TIME, 1000)
+            self._flash(self.config["messages"]["time_bonus"].format(seconds=POWERUP_TIME_BONUS), C_TIME, 1000)
         elif pt == "slow_mo":
             self.eff.activate("slow_mo", POWERUP_SLOW_DUR)
-            self._flash("SLOW MOTION!", C_SLOW, 1000)
+            self._flash(self.config["messages"]["slow_mo"], C_SLOW, 1000)
 
     # ---- update -----------------------------------------------------------
 
@@ -1200,7 +1321,7 @@ class Game:
         if new_diff != self.diff:
             self.diff = new_diff
             self.max_active = min(9, INITIAL_MAX_ACTIVE + self.diff)
-            self._flash("SPEED UP!", (255, 200, 0), 1000)
+            self._flash(self.config["messages"]["speed_up"], (255, 200, 0), 1000)
             self._play("speed")
 
         frozen = self.eff.on("freeze")
@@ -1431,20 +1552,20 @@ class Game:
             int(min(255, C_TEXT[2] + p)))
 
         title_font = pygame.font.SysFont("monospace", 64, bold=True)
-        t = title_font.render(GAME_TITLE, True, tc)
+        t = title_font.render(self.config["theme"]["title"], True, tc)
         y = 40
         self.scr.blit(t, (SCREEN_WIDTH // 2 - t.get_width() // 2, y))
 
         subtitle_font = pygame.font.SysFont("monospace", 36, bold=True)
-        t2 = subtitle_font.render("Cyber Security Whack-a-Mole", True,
+        t2 = subtitle_font.render(self.config["theme"]["subtitle"], True,
                                 (100, 220, 150))
         y += 68
         self.scr.blit(t2, (SCREEN_WIDTH // 2 - t2.get_width() // 2, y))
 
         opts = [
-            ("Press ENTER or Green Button to Start", C_TEXT),
-            ("Press L or Yellow Button for Leaderboard", (255, 215, 0)),
-            ("Press ESC or Red Button to Quit", (220, 60, 60)),
+            (self.config["ui_labels"]["buttons"]["start"], C_TEXT),
+            (self.config["ui_labels"]["buttons"]["leaderboard"], (255, 215, 0)),
+            (self.config["ui_labels"]["buttons"]["quit"], (220, 60, 60)),
         ]
         y += 80
         for txt, col in opts:
@@ -1455,7 +1576,7 @@ class Game:
         y += 40
         self.scr.blit(subtitle_font.render("========= ENTITY GUIDE =========", True,
                                             (180, 180, 200)),
-                    (SCREEN_WIDTH // 2 - 350, y))
+                        (SCREEN_WIDTH // 2 - 350, y))
         y += 45
 
         SPR = 44   # sprite render size in pixels
@@ -1463,20 +1584,13 @@ class Game:
         GAP = 14   # gap between sprites and text
 
         guide = [
-            (["hacker"],
-            "HACKERS — WHACK! +2 pts",                          (220, 60, 60)),
-            (["apt"],
-            "APT THREATS — WHACK! +3 pts (fast!)",              (180, 50, 180)),
-            (["boss"],
-            "BOSS HACKER — WHACK x3! +8 pts",                   (255, 100, 0)),
-            (["social_engineer"],
-            "SOCIAL ENGINEERS — WHACK! +3 pts",                 (80, 200, 150)),
-            (["phishing"],
-            "PHISHING EMAILS — SKIP! -2 pts",                   (220, 120, 40)),
-            (["shield", "it_admin", "lock"],
-            "FRIENDLIES — SKIP! -1 pt",                         (50, 150, 255)),
-            (["pu_freeze", "pu_double", "pu_time_bonus", "pu_slow_mo"],
-            "POWER-UPS — COLLECT!",                             (255, 215, 0)),
+            (["hacker"], f"{self.config['enemies']['hacker']} — {self.config['descriptions']['hacker']}", (220, 60, 60)),
+            (["apt"], f"{self.config['enemies']['apt']} — {self.config['descriptions']['apt']}", (180, 50, 180)),
+            (["boss"], f"{self.config['enemies']['boss']} — {self.config['descriptions']['boss']}", (255, 100, 0)),
+            (["social_engineer"], f"{self.config['enemies']['social_engineer']} — {self.config['descriptions']['social_engineer']}", (80, 200, 150)),
+            (["phishing"], f"{self.config['friendlies']['phishing']} — {self.config['descriptions']['phishing']}", (220, 120, 40)),
+            (["shield", "it_admin", "lock"], f"{self.config['friendlies']['shield']}/{self.config['friendlies']['it_admin']}/{self.config['friendlies']['lock']} — {self.config['descriptions']['shield']}", (50, 150, 255)),
+            (["pu_freeze", "pu_double", "pu_time_bonus", "pu_slow_mo"], f"POWER-UPS — COLLECT!", (255, 215, 0)),
         ]
 
         for sprite_keys, txt, col in guide:
@@ -1514,22 +1628,22 @@ class Game:
 
     def _draw_over(self):
         self.scr.fill(C_BG)
-        t = self.f_lg.render("GAME OVER", True, C_WARNING)
+        t = self.f_lg.render(self.config["theme"]["game_over_title"], True, C_WARNING)
         self.scr.blit(t, (SCREEN_WIDTH // 2 - t.get_width() // 2, 30))
-        t2 = self.f_lg.render(f"Score: {self.score}", True, C_TEXT)
+        t2 = self.f_lg.render(f"{self.config['theme']['score_label']}: {self.score}", True, C_TEXT)
         self.scr.blit(t2, (SCREEN_WIDTH // 2 - t2.get_width() // 2, 90))
 
         acc = (self.hits / self.whacks * 100) if self.whacks else 0
         stats = [
-            f"Hackers Whacked: {self.hits}",
-            f"Hackers Missed: {self.missed}",
-            f"Friendlies Hit: {self.f_hits}",
-            f"Phishing Traps Sprung: {self.ph_hits}",
-            f"Spies Caught: {self.se_hits}",
-            f"Bosses Defeated: {self.bosses_k}",
-            f"Power-ups Collected: {self.pu_got}",
-            f"Max Combo: {self.max_combo}x",
-            f"Accuracy: {acc:.1f}%",
+            f"{self.config['ui_labels']['stats']['hits']}: {self.hits}",
+            f"{self.config['ui_labels']['stats']['missed']}: {self.missed}",
+            f"{self.config['ui_labels']['stats']['f_hits']}: {self.f_hits}",
+            f"{self.config['ui_labels']['stats']['ph_hits']}: {self.ph_hits}",
+            f"{self.config['ui_labels']['stats']['se_hits']}: {self.se_hits}",
+            f"{self.config['ui_labels']['stats']['bosses_k']}: {self.bosses_k}",
+            f"{self.config['ui_labels']['stats']['pu_got']}: {self.pu_got}",
+            f"{self.config['ui_labels']['stats']['max_combo']}: {self.max_combo}x",
+            f"{self.config['ui_labels']['stats']['accuracy']}: {acc:.1f}%",
         ]
         y = 160
         for s in stats:
@@ -1538,21 +1652,21 @@ class Game:
             y += 35
 
         y += 12
-        r1 = self.f_md.render("ENTER or Green Button to Play Again", True, C_TEXT)
+        r1 = self.f_md.render(self.config["ui_labels"]["buttons"]["play_again"], True, C_TEXT)
         self.scr.blit(r1, (SCREEN_WIDTH // 2 - r1.get_width() // 2, y))
-        r2 = self.f_sm.render("M or Red or Red Button Button for Menu", True, (220, 60, 60))
+        r2 = self.f_sm.render(self.config["ui_labels"]["buttons"]["menu"], True, (220, 60, 60))
         self.scr.blit(r2, (SCREEN_WIDTH // 2 - r2.get_width() // 2, y + 38))
-        r3 = self.f_sm.render("L or Yellow Button for Leaderboard", True, (255, 215, 0))
+        r3 = self.f_sm.render(self.config["ui_labels"]["buttons"]["view_leaderboard"], True, (255, 215, 0))
         self.scr.blit(r3, (SCREEN_WIDTH // 2 - r3.get_width() // 2, y + 66))
 
     def _draw_name(self):
         self.scr.fill(C_BG)
-        t = self.f_lg.render("NEW HIGH SCORE!", True, C_COMBO)
+        t = self.f_lg.render(self.config["theme"]["high_score_title"], True, C_COMBO)
         self.scr.blit(t, (SCREEN_WIDTH // 2 - t.get_width() // 2, 60))
-        t2 = self.f_lg.render(f"Score: {self.score}", True, C_TEXT)
+        t2 = self.f_lg.render(f"{self.config['theme']['score_label']}: {self.score}", True, C_TEXT)
         self.scr.blit(t2, (SCREEN_WIDTH // 2 - t2.get_width() // 2, 130))
         self.scr.blit(
-            self.f_md.render("Enter your name:", True, (200, 200, 220)),
+            self.f_md.render(self.config["ui_labels"]["buttons"]["enter_name"], True, (200, 200, 220)),
             (SCREEN_WIDTH // 2 - 200, 220))
 
         self.cur_blink += 0.08
@@ -1563,8 +1677,8 @@ class Game:
         nt = self.f_lg.render(self.pname + cur, True, C_SCORE)
         self.scr.blit(nt, (SCREEN_WIDTH // 2 - nt.get_width() // 2, 278))
         self.scr.blit(
-            self.f_sm.render("ENTER to confirm (max 20 chars)", True,
-                             (130, 130, 150)),
+            self.f_sm.render(self.config["ui_labels"]["buttons"]["confirm_name"], True,
+                            (130, 130, 150)),
             (SCREEN_WIDTH // 2 - 280, 350))
 
     def _draw_lb(self):
@@ -1603,8 +1717,8 @@ class Game:
             self.f_md.render("ESC, M, or Red Button for Menu", True, (220, 60, 60)),
             (SCREEN_WIDTH // 2 - 300, y))
         self.scr.blit(
-            self.f_md.render("Press ENTER or Green Button to Start", True,
-                             C_TEXT),
+            self.f_md.render(self.config["ui_labels"]["buttons"]["start"], True,
+                            C_TEXT),
             (SCREEN_WIDTH // 2 - 375, y + 40))
     
     def _make_window_icon(self):
@@ -1612,7 +1726,7 @@ class Game:
         for path in [
             os.path.join(_DATA_DIR, "whack-a-hacker.png"),
             os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                         "whack-a-hacker.png"),
+                        "whack-a-hacker.png"),
         ]:
             if os.path.exists(path):
                 try:
@@ -1698,15 +1812,15 @@ class Game:
                         if ev.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
                             nm = self.pname.strip() or "Anonymous"
                             acc = ((self.hits / self.whacks * 100)
-                                   if self.whacks else 0)
+                                if self.whacks else 0)
                             self.lb.add(nm, self.score, self.max_combo,
                                         acc, self.bosses_k)
                             self.state = "over"
                         elif ev.key == pygame.K_BACKSPACE:
                             self.pname = self.pname[:-1]
                         elif (len(self.pname) < 20
-                              and ev.unicode.isprintable()
-                              and ev.unicode):
+                            and ev.unicode.isprintable()
+                            and ev.unicode):
                             self.pname += ev.unicode
 
                     elif self.state == "lb":
@@ -1754,11 +1868,11 @@ class Game:
 
             # draw
             {"menu": self._draw_menu,
-             "play": self._draw_play,
-             "over": self._draw_over,
-             "name": self._draw_name,
-             "lb":   self._draw_lb,
-             }.get(self.state, self._draw_menu)()
+            "play": self._draw_play,
+            "over": self._draw_over,
+            "name": self._draw_name,
+            "lb":   self._draw_lb,
+            }.get(self.state, self._draw_menu)()
 
             pygame.display.flip()
 
