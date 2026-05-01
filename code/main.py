@@ -54,8 +54,9 @@ SCORE_HIT_HACKER = 2
 SCORE_HIT_APT = 3
 SCORE_HIT_BOSS = 8
 SCORE_HIT_SOCIAL_ENGINEER = 3
+SCORE_HIT_PHISHING = 2
 SCORE_HIT_FRIENDLY = -1
-SCORE_HIT_PHISHING = -2
+
 
 COMBO_THRESHOLD = 3
 COMBO_BONUS = 1
@@ -96,12 +97,12 @@ MOLE_IMAGE_PATHS = {
     "apt": [f"{ASSETS_DIR}/apt.png"],
     "boss": [f"{ASSETS_DIR}/boss.png"],
     "social_engineer": [f"{ASSETS_DIR}/social_eng.png"],
+    "phishing": [f"{ASSETS_DIR}/phishing.png"],
 }
 FRIENDLY_IMAGE_PATHS = {
     "shield": [f"{ASSETS_DIR}/shield.png"],
     "it_admin": [f"{ASSETS_DIR}/it_admin.png"],
     "lock": [f"{ASSETS_DIR}/lock.png"],
-    "phishing": [f"{ASSETS_DIR}/phishing.png"],
 }
 
 # ---- Colors ----
@@ -535,7 +536,287 @@ class Sprites:
         except Exception:
             pass
         return s
+    
+    # ==== Configurable generators (driven by custom_sprites.json) ====
 
+    @staticmethod
+    def gen_hacker(sz, variant, color, features):
+        s = pygame.Surface(sz, pygame.SRCALPHA)
+        cx, cy = sz[0] // 2, sz[1] // 2
+        pygame.draw.rect(s, color, (cx - 30, cy, 60, 45), border_radius=8)
+        pygame.draw.circle(s, (220, 180, 150), (cx, cy - 8), 22)
+        if features.get("has_ski_mask", False):
+            pygame.draw.circle(s, (40, 40, 40), (cx, cy - 8), 22)
+            pygame.draw.rect(s, (220, 180, 150), (cx - 14, cy - 14, 28, 12))
+            pygame.draw.circle(s, (255, 255, 255), (cx - 7, cy - 12), 5)
+            pygame.draw.circle(s, (255, 255, 255), (cx + 7, cy - 12), 5)
+            pygame.draw.circle(s, (0, 0, 0), (cx - 7, cy - 12), 2)
+            pygame.draw.circle(s, (0, 0, 0), (cx + 7, cy - 12), 2)
+        else:
+            pygame.draw.arc(s, color, (cx - 28, cy - 35, 56, 50), 0, math.pi, 8)
+            pygame.draw.rect(s, color, (cx - 28, cy - 14, 56, 10))
+            pygame.draw.rect(s, (0, 255, 0), (cx - 12, cy - 12, 8, 4))
+            pygame.draw.rect(s, (0, 255, 0), (cx + 4, cy - 12, 8, 4))
+            pygame.draw.rect(s, (30, 30, 30), (cx - 18, cy - 4, 36, 10), border_radius=3)
+        if features.get("has_money_bag", False):
+            pygame.draw.circle(s, (80, 140, 60), (cx + 22, cy + 15), 14)
+            pygame.draw.circle(s, (60, 120, 40), (cx + 22, cy + 15), 14, 2)
+            try:
+                f = pygame.font.SysFont("monospace", 14, bold=True)
+                sym = features.get("money_symbol", "$")
+                s.blit(f.render(sym, True, (255, 255, 0)), (cx + 17, cy + 8))
+            except Exception:
+                pass
+        else:
+            pygame.draw.rect(s, (80, 80, 80), (cx - 18, cy + 10, 36, 22), border_radius=2)
+            pygame.draw.rect(s, (0, 200, 0), (cx - 14, cy + 14, 28, 14), border_radius=2)
+            pygame.draw.circle(s, (0, 80, 0), (cx, cy + 19), 4)
+        return s
+
+    @staticmethod
+    def gen_apt(sz, cfg):
+        s = pygame.Surface(sz, pygame.SRCALPHA)
+        cx, cy = sz[0] // 2, sz[1] // 2
+        colors = cfg.get("colors", {})
+        feat = cfg.get("features", {})
+        body = colors.get("body", [40, 0, 60])
+        tie = colors.get("tie", [255, 215, 0])
+        hair = colors.get("hair", [30, 20, 10])
+        pygame.draw.rect(s, body, (cx - 30, cy, 60, 45), border_radius=8)
+        pygame.draw.polygon(s, tie, [(cx-3,cy),(cx+3,cy),(cx+2,cy+25),(cx,cy+28),(cx-2,cy+25)])
+        pygame.draw.circle(s, (200, 160, 130), (cx, cy - 8), 22)
+        pygame.draw.arc(s, hair, (cx-22, cy-30, 44, 30), 0, math.pi, 8)
+        if feat.get("has_sunglasses", True):
+            pygame.draw.rect(s, (20,20,20), (cx-16,cy-14,12,8), border_radius=2)
+            pygame.draw.rect(s, (20,20,20), (cx+4,cy-14,12,8), border_radius=2)
+            pygame.draw.line(s, (20,20,20), (cx-4,cy-11), (cx+4,cy-11), 2)
+        pygame.draw.arc(s, (150,80,80), (cx-6,cy-2,12,8), 3.3, 6.1, 2)
+        if feat.get("has_pyramid", True):
+            pygame.draw.polygon(s, (255,215,0,80), [(cx-25,cy+42),(cx,cy+20),(cx+25,cy+42)])
+        label = feat.get("label", "APT")
+        try:
+            f = pygame.font.SysFont("monospace", 10, bold=True)
+            s.blit(f.render(label, True, (255, 50, 50)), (cx - 14, cy + 30))
+        except Exception:
+            pass
+        return s
+
+    @staticmethod
+    def gen_boss(sz, cfg):
+        s = pygame.Surface(sz, pygame.SRCALPHA)
+        cx, cy = sz[0] // 2, sz[1] // 2
+        feat = cfg.get("features", {})
+        aura = cfg.get("aura_colors", [[255,50,0,30],[255,50,0,60],[255,50,0,90]])
+        body_col = cfg.get("body_color", [20, 20, 20])
+        for i, c in enumerate(aura):
+            pygame.draw.circle(s, c, (cx, cy), 38 + i * 3)
+        pygame.draw.rect(s, body_col, (cx-35,cy-2,70,48), border_radius=10)
+        if feat.get("has_chain", True):
+            pygame.draw.arc(s, (255,215,0), (cx-12,cy,24,16), 3.14, 6.28, 3)
+        pygame.draw.circle(s, (200,160,130), (cx, cy-14), 25)
+        if feat.get("has_top_hat", True):
+            pygame.draw.rect(s, (10,10,10), (cx-18,cy-42,36,25), border_radius=3)
+            pygame.draw.rect(s, (10,10,10), (cx-24,cy-20,48,8), border_radius=2)
+            pygame.draw.rect(s, (255,215,0), (cx-18,cy-20,36,4))
+        if feat.get("has_monocle", True):
+            pygame.draw.circle(s, (255,215,0), (cx+10,cy-16), 8, 2)
+            pygame.draw.line(s, (255,215,0), (cx+10,cy-8), (cx+10,cy), 1)
+        pygame.draw.arc(s, (255,255,255), (cx-10,cy-6,20,14), 3.3, 6.1, 2)
+        eye_sym = feat.get("eye_symbol", "$")
+        label = feat.get("label", "BOSS")
+        try:
+            f = pygame.font.SysFont("monospace", 12, bold=True)
+            s.blit(f.render(eye_sym, True, (0,255,0)), (cx-12,cy-22))
+            s.blit(f.render(eye_sym, True, (0,255,0)), (cx+4,cy-22))
+            f2 = pygame.font.SysFont("monospace", 10, bold=True)
+            s.blit(f2.render(label, True, (255,255,0)), (cx-12,cy+30))
+        except Exception:
+            pass
+        return s
+
+    @staticmethod
+    def gen_social_engineer(sz, cfg):
+        s = pygame.Surface(sz, pygame.SRCALPHA)
+        cx, cy = sz[0] // 2, sz[1] // 2
+        feat = cfg.get("features", {})
+        body_col = cfg.get("body_color", [40, 120, 80])
+        tie_col = cfg.get("tie_color", [60, 160, 100])
+        pygame.draw.rect(s, body_col, (cx-28,cy+2,56,40), border_radius=6)
+        pygame.draw.polygon(s, tie_col, [(cx-3,cy+2),(cx+3,cy+2),(cx+2,cy+20),(cx,cy+22),(cx-2,cy+20)])
+        pygame.draw.circle(s, (220,180,150), (cx, cy-10), 20)
+        pygame.draw.arc(s, (50,30,20), (cx-20,cy-30,40,30), 0, math.pi, 5)
+        pygame.draw.circle(s, (255,255,255), (cx-8,cy-12), 6)
+        pygame.draw.circle(s, (255,255,255), (cx+8,cy-12), 6)
+        pygame.draw.circle(s, (0,0,0), (cx-6,cy-12), 3)
+        pygame.draw.circle(s, (0,0,0), (cx+10,cy-12), 3)
+        if feat.get("has_sweat", True):
+            pygame.draw.circle(s, (100,200,255), (cx+18,cy-8), 3)
+        if feat.get("has_phone", True):
+            pygame.draw.rect(s, (40,40,40), (cx-28,cy+15,10,16), border_radius=2)
+            pygame.draw.rect(s, (0,200,0), (cx-26,cy+17,6,10), border_radius=1)
+        label = feat.get("label", "SPY")
+        try:
+            f = pygame.font.SysFont("monospace", 9, bold=True)
+            s.blit(f.render(label, True, (255,200,50)), (cx-16,cy+30))
+        except Exception:
+            pass
+        return s
+
+    @staticmethod
+    def gen_phishing(sz, cfg):
+        s = pygame.Surface(sz, pygame.SRCALPHA)
+        cx, cy = sz[0] // 2, sz[1] // 2
+        feat = cfg.get("features", {})
+        env_col = cfg.get("envelope_color", [200, 170, 50])
+        brd_col = cfg.get("border_color", [255, 215, 0])
+        flp_col = cfg.get("flap_color", [180, 150, 40])
+        r = pygame.Rect(cx-30, cy-10, 60, 40)
+        pygame.draw.rect(s, env_col, r, border_radius=4)
+        pygame.draw.rect(s, brd_col, r, width=2, border_radius=4)
+        pygame.draw.polygon(s, flp_col, [(cx-30,cy-10),(cx,cy+10),(cx+30,cy-10)])
+        pygame.draw.polygon(s, brd_col, [(cx-30,cy-10),(cx,cy+10),(cx+30,cy-10)], 2)
+        text = feat.get("text", "$$$")
+        label = feat.get("label", "GET RICH")
+        sublabel = feat.get("sublabel", "QUICK!")
+        try:
+            f = pygame.font.SysFont("monospace", 18, bold=True)
+            s.blit(f.render(text, True, (0,180,0)), (cx-14,cy-6))
+            f2 = pygame.font.SysFont("monospace", 10, bold=True)
+            s.blit(f2.render(label, True, (255,50,50)), (cx-22,cy+22))
+            s.blit(f2.render(sublabel, True, (255,50,50)), (cx-16,cy+32))
+        except Exception:
+            pass
+        if feat.get("has_hook", True):
+            hx, hy = cx+15, cy-25
+            pygame.draw.line(s, (180,180,180), (hx,hy-10), (hx,hy+5), 2)
+            pygame.draw.arc(s, (180,180,180), (hx-5,hy,10,12), 3.14, 6.28, 2)
+        return s
+
+    @staticmethod
+    def gen_shield(sz, cfg):
+        s = pygame.Surface(sz, pygame.SRCALPHA)
+        cx, cy = sz[0] // 2, sz[1] // 2
+        main = cfg.get("main_color", [50, 150, 255])
+        border = cfg.get("border_color", [100, 200, 255])
+        check = cfg.get("check_color", [255, 255, 255])
+        pts = [(cx,cy-30),(cx+25,cy-15),(cx+20,cy+15),(cx,cy+30),(cx-20,cy+15),(cx-25,cy-15)]
+        pygame.draw.polygon(s, main, pts)
+        pygame.draw.polygon(s, border, pts, 3)
+        pygame.draw.lines(s, check, False, [(cx-10,cy),(cx-2,cy+10),(cx+12,cy-10)], 4)
+        return s
+
+    @staticmethod
+    def gen_it_admin(sz, cfg):
+        s = pygame.Surface(sz, pygame.SRCALPHA)
+        cx, cy = sz[0] // 2, sz[1] // 2
+        feat = cfg.get("features", {})
+        body_col = cfg.get("body_color", [50, 100, 200])
+        pygame.draw.rect(s, body_col, (cx-25,cy+2,50,35), border_radius=6)
+        pygame.draw.circle(s, (220,180,150), (cx,cy-10), 20)
+        if feat.get("has_glasses", True):
+            pygame.draw.circle(s, (200,200,200), (cx-8,cy-12), 7, 2)
+            pygame.draw.circle(s, (200,200,200), (cx+8,cy-12), 7, 2)
+            pygame.draw.line(s, (200,200,200), (cx-1,cy-12), (cx+1,cy-12), 2)
+        pygame.draw.arc(s, (200,100,100), (cx-6,cy-2,12,8), 3.3, 6.1, 2)
+        if feat.get("has_briefcase", True):
+            pygame.draw.rect(s, (100,60,20), (cx-8,cy+24,16,12), border_radius=2)
+            pygame.draw.rect(s, (140,90,30), (cx-8,cy+24,16,12), 1, border_radius=2)
+            pygame.draw.rect(s, (140,90,30), (cx-3,cy+22,6,4))
+        if feat.get("has_id_badge", True):
+            pygame.draw.rect(s, (255,255,255), (cx+14,cy+6,10,14), border_radius=2)
+            pygame.draw.circle(s, (0,150,0), (cx+19,cy+10), 3)
+        return s
+
+    @staticmethod
+    def gen_lock(sz, cfg):
+        s = pygame.Surface(sz, pygame.SRCALPHA)
+        cx, cy = sz[0] // 2, sz[1] // 2
+        body_col = cfg.get("body_color", [220, 200, 50])
+        border_col = cfg.get("border_color", [180, 160, 30])
+        shackle_col = cfg.get("shackle_color", [80, 60, 10])
+        pygame.draw.arc(s, shackle_col, (cx-15,cy-35,30,30), 0, math.pi, 5)
+        pygame.draw.rect(s, body_col, (cx-20,cy-10,40,35), border_radius=4)
+        pygame.draw.rect(s, border_col, (cx-20,cy-10,40,35), width=2, border_radius=4)
+        pygame.draw.circle(s, (80,60,10), (cx,cy+2), 6)
+        pygame.draw.rect(s, (80,60,10), (cx-3,cy+2,6,12))
+        return s
+
+    @staticmethod
+    def _gen_pu_base(sz, cfg):
+        s = pygame.Surface(sz, pygame.SRCALPHA)
+        cx, cy = sz[0] // 2, sz[1] // 2
+        outer = cfg.get("outer_glow", [255, 215, 0, 60])
+        inner = cfg.get("inner_glow", [255, 230, 100, 40])
+        pygame.draw.circle(s, outer, (cx, cy), 35)
+        pygame.draw.circle(s, inner, (cx, cy), 30)
+        return s, cx, cy
+
+    @staticmethod
+    def gen_pu_freeze(sz, cfg):
+        base_cfg = cfg.get("base", {})
+        s, cx, cy = Sprites._gen_pu_base(sz, base_cfg)
+        color = cfg.get("color", [100, 200, 255])
+        center = cfg.get("center_color", [200, 230, 255])
+        for a in range(0, 360, 60):
+            r = math.radians(a)
+            x2 = cx + int(20 * math.cos(r))
+            y2 = cy + int(20 * math.sin(r))
+            pygame.draw.line(s, color, (cx, cy), (x2, y2), 3)
+            bx = cx + int(12 * math.cos(r))
+            by = cy + int(12 * math.sin(r))
+            for ba in (a - 30, a + 30):
+                br = math.radians(ba)
+                pygame.draw.line(s, (150,220,255), (bx,by),
+                                 (bx+int(6*math.cos(br)), by+int(6*math.sin(br))), 2)
+        pygame.draw.circle(s, center, (cx, cy), 5)
+        return s
+
+    @staticmethod
+    def gen_pu_double(sz, cfg):
+        base_cfg = cfg.get("base", {})
+        s, cx, cy = Sprites._gen_pu_base(sz, base_cfg)
+        text = cfg.get("text", "2X")
+        text_col = cfg.get("text_color", [255, 50, 50])
+        try:
+            f = pygame.font.SysFont("monospace", 32, bold=True)
+            t = f.render(text, True, text_col)
+            s.blit(t, (cx - t.get_width()//2, cy - t.get_height()//2))
+        except Exception:
+            pygame.draw.circle(s, text_col, (cx, cy), 15)
+        return s
+
+    @staticmethod
+    def gen_pu_time(sz, cfg):
+        base_cfg = cfg.get("base", {})
+        s, cx, cy = Sprites._gen_pu_base(sz, base_cfg)
+        clk = cfg.get("clock_color", [100, 255, 100])
+        text = cfg.get("text", "+5s")
+        text_col = cfg.get("text_color", [255, 255, 200])
+        pygame.draw.circle(s, clk, (cx, cy), 18, 3)
+        pygame.draw.line(s, clk, (cx, cy), (cx, cy-14), 3)
+        pygame.draw.line(s, clk, (cx, cy), (cx+10, cy), 2)
+        try:
+            f = pygame.font.SysFont("monospace", 12, bold=True)
+            s.blit(f.render(text, True, text_col), (cx-9, cy+20))
+        except Exception:
+            pass
+        return s
+
+    @staticmethod
+    def gen_pu_slow(sz, cfg):
+        base_cfg = cfg.get("base", {})
+        s, cx, cy = Sprites._gen_pu_base(sz, base_cfg)
+        color = cfg.get("color", [200, 150, 255])
+        text = cfg.get("text", "SLOW")
+        text_col = cfg.get("text_color", [255, 255, 200])
+        pygame.draw.arc(s, color, (cx-15,cy-15,30,25), 0, math.pi, 4)
+        pygame.draw.ellipse(s, color, (cx-18,cy+2,36,14))
+        try:
+            f = pygame.font.SysFont("monospace", 10, bold=True)
+            s.blit(f.render(text, True, text_col), (cx-12, cy+20))
+        except Exception:
+            pass
+        return s
 
 # ===========================================================================
 # LEADERBOARD
@@ -840,6 +1121,9 @@ class Game:
         
         # Load theme configuration
         self._load_theme_config()
+
+        # Load custom sprites configuration
+        self._load_sprites_config()
         
         self._load_sprites()
         self._load_sounds()
@@ -875,13 +1159,13 @@ class Game:
                 "hacker": "HACKER",
                 "apt": "APT THREAT",
                 "boss": "BOSS HACKER",
-                "social_engineer": "SOCIAL ENGINEER"
+                "social_engineer": "SOCIAL ENGINEER",
+                "phishing": "PHISHING EMAIL"
             },
             "friendlies": {
                 "shield": "SHIELD",
                 "it_admin": "IT ADMIN",
-                "lock": "LOCK",
-                "phishing": "PHISHING EMAIL"
+                "lock": "LOCK"
             },
             "powerups": {
                 "freeze": "FREEZE",
@@ -894,7 +1178,7 @@ class Game:
                 "apt": "WHACK! +3 pts (fast!)",
                 "boss": "WHACK x3! +8 pts",
                 "social_engineer": "WHACK! +3 pts",
-                "phishing": "SKIP! -2 pts",
+                "phishing": "WHACK! +2 pts",
                 "shield": "SKIP! -1 pt",
                 "it_admin": "SKIP! -1 pt",
                 "lock": "SKIP! -1 pt"
@@ -910,7 +1194,7 @@ class Game:
                 "hit_friendly": "FRIENDLY HIT! {pts}",
                 "combo": "COMBO x{combo}! +{pts}",
                 "freeze": "FREEZE!",
-                "double": "DOUBLE POINTS!",
+                "double": "DOUBLE POINTS! +{pts}",
                 "time_bonus": "+{seconds} SECONDS!",
                 "slow_mo": "SLOW MOTION!",
                 "speed_up": "SPEED UP!"
@@ -957,6 +1241,17 @@ class Game:
         # Update window title with theme configuration
         pygame.display.set_caption(self.config["theme"]["title"])
 
+    def _load_sprites_config(self):
+        """Load custom sprites configuration from JSON file"""
+        sprites_config_path = os.path.join(_DATA_DIR, "custom_sprites.json")
+        self.sprites_config = {}
+        try:
+            if os.path.exists(sprites_config_path):
+                with open(sprites_config_path, 'r') as f:
+                    self.sprites_config = json.load(f)
+        except (json.JSONDecodeError, IOError):
+            pass
+
     def _update_config(self, target, source):
         """Update target dictionary with values from source"""
         for key, value in source.items():
@@ -991,33 +1286,78 @@ class Game:
         sz = (80, 80)
         m = self.imgs
 
+        # --- Hacker (multiple variants) ---
         m["hacker"] = []
+        hacker_cfg = self.sprites_config.get("hacker", {})
+        num_variants = hacker_cfg.get("variants", 3)
+        custom_colors = hacker_cfg.get("colors", [])
+        custom_features = hacker_cfg.get("features", {})
+        
         filenames = MOLE_IMAGE_PATHS.get("hacker", [])
-        for i in range(max(3, len(filenames))):
-            fb = Sprites.hacker(sz, i)
+        for i in range(max(num_variants, len(filenames))):
+            # Try PNG first
             if i < len(filenames):
-                m["hacker"].append(self._try_img(filenames[i], sz, fb))
+                png = self._try_img(filenames[i], sz, None)
+                if png:
+                    m["hacker"].append(png)
+                    continue
+            # Use custom config sprite if config exists, else default
+            if custom_colors or custom_features:
+                default_colors = [(200, 40, 40), (180, 50, 180), (160, 60, 40)]
+                colors = custom_colors if custom_colors else default_colors
+                col = colors[i % len(colors)]
+                m["hacker"].append(Sprites.gen_hacker(sz, i, col, custom_features))
             else:
-                m["hacker"].append(fb)
+                m["hacker"].append(Sprites.hacker(sz, i))
 
-        for key, gen in [("apt", Sprites.apt), ("boss", Sprites.boss),
-                         ("social_engineer", Sprites.social_engineer)]:
-            fb = gen(sz)
+        # --- Single-variant enemies ---
+        enemy_map = [
+            ("apt",              Sprites.apt,              Sprites.gen_apt),
+            ("boss",             Sprites.boss,             Sprites.gen_boss),
+            ("social_engineer",  Sprites.social_engineer,  Sprites.gen_social_engineer),
+        ]
+        for key, default_gen, custom_gen in enemy_map:
             filenames = MOLE_IMAGE_PATHS.get(key, [])
             fn = filenames[0] if filenames else ""
-            m[key] = [self._try_img(fn, sz, fb)]
+            png = self._try_img(fn, sz, None)
+            if png:
+                m[key] = [png]
+            elif key in self.sprites_config:
+                m[key] = [custom_gen(sz, self.sprites_config[key])]
+            else:
+                m[key] = [default_gen(sz)]
 
-        for key, gen in [("shield", Sprites.shield), ("it_admin", Sprites.it_admin),
-                         ("lock", Sprites.lock), ("phishing", Sprites.phishing)]:
-            fb = gen(sz)
+        # --- Friendlies ---
+        friendly_map = [
+            ("shield",    Sprites.shield,    Sprites.gen_shield),
+            ("it_admin",  Sprites.it_admin,  Sprites.gen_it_admin),
+            ("lock",      Sprites.lock,      Sprites.gen_lock),
+            ("phishing",  Sprites.phishing,  Sprites.gen_phishing),
+        ]
+        for key, default_gen, custom_gen in friendly_map:
             filenames = FRIENDLY_IMAGE_PATHS.get(key, [])
             fn = filenames[0] if filenames else ""
-            m[key] = [self._try_img(fn, sz, fb)]
+            png = self._try_img(fn, sz, None)
+            if png:
+                m[key] = [png]
+            elif key in self.sprites_config:
+                m[key] = [custom_gen(sz, self.sprites_config[key])]
+            else:
+                m[key] = [default_gen(sz)]
 
-        m["pu_freeze"] = [Sprites.pu_freeze(sz)]
-        m["pu_double"] = [Sprites.pu_double(sz)]
-        m["pu_time_bonus"] = [Sprites.pu_time(sz)]
-        m["pu_slow_mo"] = [Sprites.pu_slow(sz)]
+        # --- Power-ups ---
+        pu_cfg = self.sprites_config.get("powerups", {})
+        pu_map = [
+            ("pu_freeze",     "freeze",     Sprites.pu_freeze,  Sprites.gen_pu_freeze),
+            ("pu_double",     "double",     Sprites.pu_double,  Sprites.gen_pu_double),
+            ("pu_time_bonus", "time_bonus", Sprites.pu_time,    Sprites.gen_pu_time),
+            ("pu_slow_mo",    "slow_mo",    Sprites.pu_slow,    Sprites.gen_pu_slow),
+        ]
+        for img_key, cfg_key, default_gen, custom_gen in pu_map:
+            if cfg_key in pu_cfg:
+                m[img_key] = [custom_gen(sz, pu_cfg[cfg_key])]
+            else:
+                m[img_key] = [default_gen(sz)]
 
     def _load_sounds(self):
         if not self.audio_ok:
@@ -1135,7 +1475,7 @@ class Game:
         weights = list(SPAWN_WEIGHTS.values())
         return random.choices(types, weights=weights, k=1)[0]
 
-    _ENEMIES = {"hacker", "apt", "boss", "social_engineer"}
+    _ENEMIES = {"hacker", "apt", "boss", "social_engineer", "phishing"}
 
     def _spawn(self):
         avail = [h for h in self.holes if not h.active]
@@ -1267,14 +1607,14 @@ class Game:
                 pts = SCORE_HIT_PHISHING
                 self.ph_hits += 1
                 self._play("phishing")
-                self._flash(self.config["messages"]["hit_phishing"].format(pts=pts), C_WARNING, 1000)
+                self._flash(self.config["messages"]["hit_phishing"].format(pts=pts), C_TEXT, 800)
             else:
                 pts = SCORE_HIT_FRIENDLY
                 self.f_hits += 1
                 self._play("friendly")
                 self._flash(self.config["messages"]["hit_friendly"].format(pts=pts), C_WARNING, 800)
             self.score += pts
-            self.combo = 0
+            self.combo = 0 if detail != "phishing" else self.combo
             self.ptcl.emit(px, py, (255, 50, 50), 8)
 
     def _activate_pu(self, pt):
@@ -1393,8 +1733,7 @@ class Game:
                 dy = h.y + h.h - 25 - sh + h.shake_xy[1]
 
                 # friendly glow
-                if (not h.is_enemy and not h.is_powerup
-                        and h.etype != "phishing"):
+                if (not h.is_enemy and not h.is_powerup):
                     g = pygame.Surface((sw + 8, sh + 8), pygame.SRCALPHA)
                     pygame.draw.rect(g, (50, 255, 100, 60), g.get_rect(),
                                      border_radius=8)
@@ -1588,7 +1927,7 @@ class Game:
             (["apt"], f"{self.config['enemies']['apt']} — {self.config['descriptions']['apt']}", (180, 50, 180)),
             (["boss"], f"{self.config['enemies']['boss']} — {self.config['descriptions']['boss']}", (255, 100, 0)),
             (["social_engineer"], f"{self.config['enemies']['social_engineer']} — {self.config['descriptions']['social_engineer']}", (80, 200, 150)),
-            (["phishing"], f"{self.config['friendlies']['phishing']} — {self.config['descriptions']['phishing']}", (220, 120, 40)),
+            (["phishing"], f"{self.config['enemies']['phishing']} — {self.config['descriptions']['phishing']}", (220, 120, 40)),
             (["shield", "it_admin", "lock"], f"{self.config['friendlies']['shield']}/{self.config['friendlies']['it_admin']}/{self.config['friendlies']['lock']} — {self.config['descriptions']['shield']}", (50, 150, 255)),
             (["pu_freeze", "pu_double", "pu_time_bonus", "pu_slow_mo"], f"POWER-UPS — COLLECT!", (255, 215, 0)),
         ]
