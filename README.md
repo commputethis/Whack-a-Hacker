@@ -6,8 +6,7 @@ A fast-paced, cyber security themed whack-a-mole game built with Python and Pyga
 
 ## Features
 
-- **Diverse Enemy Types**: Regular hackers, APT threats, social engineers, and powerful boss hackers.
-- **Deceptive Penalties**: Phishing emails that look hostile but penalize you for hitting them.
+- **Diverse Enemy Types**: Regular hackers, APT threats, social engineers, powerful boss hackers, and phishing emails.
 - **Power-Ups**: Freeze time, double points, add time to the clock, and slow motion.
 - **Boss Battles**: Boss hackers appear every ~20 seconds and require 3 hits to defeat.
 - **Combo System**: Chain successful hits for bonus points.
@@ -76,13 +75,13 @@ Example `theme_config.json`:
     "hacker": "MOLE",
     "apt": "GOLDEN MOLE",
     "boss": "KING MOLE",
-    "social_engineer": "DISGUISED MOLE"
+    "social_engineer": "DISGUISED MOLE",
+    "phishing": "WEED"
   },
   "friendlies": {
     "shield": "FLOWER",
     "it_admin": "GARDENER",
-    "lock": "SHOVEL",
-    "phishing": "WEED"
+    "lock": "SHOVEL"
   },
   "powerups": {
     "freeze": "FREEZE",
@@ -95,7 +94,7 @@ Example `theme_config.json`:
     "apt": "WHACK! +3 pts (fast!)",
     "boss": "WHACK x3! +8 pts",
     "social_engineer": "WHACK! +3 pts",
-    "phishing": "SKIP! -2 pts",
+    "phishing": "WHACK! +2 pts",
     "shield": "SKIP! -1 pt",
     "it_admin": "SKIP! -1 pt",
     "lock": "SKIP! -1 pt"
@@ -107,7 +106,7 @@ Example `theme_config.json`:
     "hit_hacker": "+{pts}",
     "hit_apt": "+{pts}",
     "hit_social": "SPY CAUGHT! +{pts}",
-    "hit_phishing": "WEED TRAP! {pts}",
+    "hit_phishing": "WEED PULLED! +{pts}",
     "hit_friendly": "FRIENDLY HIT! {pts}",
     "combo": "COMBO x{combo}! +{pts}",
     "freeze": "FREEZE!",
@@ -121,7 +120,7 @@ Example `theme_config.json`:
       "hits": "Moles Whacked",
       "missed": "Moles Missed",
       "f_hits": "Friendlies Hit",
-      "ph_hits": "Weeds Sprung",
+      "ph_hits": "Weeds Pulled",
       "se_hits": "Spies Caught",
       "bosses_k": "Bosses Defeated",
       "pu_got": "Power-ups Collected",
@@ -201,12 +200,12 @@ The game checks for images in this order:
   - apt.png
   - boss.png
   - social_eng.png  
+  - phishing.png
 
 - Friendlies:
   - shield.png
   - it_admin.png
   - lock.png
-  - phishing.png
 
 You only need to provide the images you want to override. Any missing images will use the procedurally generated sprites.
 
@@ -474,8 +473,8 @@ chmod +x whack-a-hacker-aarch64_{Version tag}.AppImage
 | APT Threat | +3 | Advanced Persistent Threat, faster |
 | Social Engineer | +3 | Disguised as friendly |
 | Boss Hacker | +8 | Requires 3 hits to defeat |
+| Phishing Email | +2 | Block the email |
 | Friendly (Shield/Admin/Lock) | -1 | Penalty for hitting |
-| Phishing Email | -2 | Traps that look hostile |
 
 ### Power-Ups
 
