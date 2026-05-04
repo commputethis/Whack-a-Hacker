@@ -1,0 +1,23 @@
+{
+  "name": "whack_a_hacker",
+  "version": "1.10.0",
+  "summary": {
+    "en": "Whack-a-Hacker - A fast-paced, cybersecurity themed whack-a-mole game"
+  },
+  "icons": {
+      "app": "applications-games",
+      "monochrome": "applications-games"
+  },
+  "categories": [
+    "Game",
+    "ArcadeGame"
+  ],
+  "author": "David Prows",
+  "vendor": "Beacon Credit Union",
+  "rw_partition": {
+    "size": "small",
+    "flags": [
+      "compressed"
+    ]
+  }
+}
