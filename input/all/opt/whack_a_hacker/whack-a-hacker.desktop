@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Whack-a-Hacker
+Comment=Cyber Security Whack-a-Mole Game
+Exec=AppRun
+Icon=whack-a-hacker
+Categories=Game;ArcadeGame;
+Terminal=false
