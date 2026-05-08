@@ -5,6 +5,17 @@ Features: Boss moles, power-ups, deceptive entities (phishing/social engineers),
           combo system, procedural sounds & sprites, persistent leaderboard.
 Controls: Numpad 1-9 (or regular 1-9) or Mouse Click, Ctrl+Shift+C to reset leaderboard.
 """
+import sys
+import os
+
+# Fix path resolution for PyInstaller / Frozen apps
+if getattr(sys, 'frozen', False):
+    # We are running as a bundled executable (PyInstaller)
+    # sys._MEIPASS is the temporary folder where PyInstaller extracts files
+    application_path = sys._MEIPASS
+else:
+    # We are running as a standard script
+    application_path = os.path.dirname(os.path.abspath(__file__))
 
 import pygame
 import random
@@ -22,19 +33,18 @@ from pathlib import Path
 
 GAME_TITLE = "Whack-a-Hacker!"
 GAME_DURATION = 60  # seconds
-SCREEN_WIDTH = 1920
-SCREEN_HEIGHT = 1080
 FPS = 60
 
-_DATA_DIR = os.environ.get("WHACK_DATA_DIR", "")
-if not _DATA_DIR:
-    _DATA_DIR = os.path.join(os.path.expanduser("~"), ".local", "share", "whack-a-hacker")
+# _DATA_DIR = os.environ.get("WHACK_DATA_DIR", "/tmp/whack-a-hacker")
+# if not _DATA_DIR:
+#    _DATA_DIR = os.path.join(os.path.expanduser("~"), ".local", "share", "whack-a-hacker")
+_DATA_DIR = os.path.join(os.path.expanduser("~"), ".local", "share", "whack-a-hacker")
 os.makedirs(_DATA_DIR, exist_ok=True)
 LEADERBOARD_FILE = os.path.join(_DATA_DIR, "leaderboard.json")
 
 # Look for user assets first, fall back to bundled assets
 _USER_ASSETS = os.path.join(_DATA_DIR, "assets")
-_BUNDLED_ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
+_BUNDLED_ASSETS = os.path.join(application_path, "assets")
 ASSETS_DIR = _USER_ASSETS if os.path.exists(_USER_ASSETS) else _BUNDLED_ASSETS
 
 GRID_COLS = 3
@@ -1086,6 +1096,10 @@ class Game:
             self.audio_ok = False
 
         pygame.init()
+        
+        info = pygame.display.Info()
+        self.screen_width = info.current_w
+        self.screen_height = info.current_h
 
         if self.audio_ok:
             try:
@@ -1093,8 +1107,11 @@ class Game:
             except pygame.error:
                 self.audio_ok = False
 
-        self.scr = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT),
-                                           pygame.DOUBLEBUF)
+        self.scr = pygame.display.set_mode(
+            (self.screen_width, self.screen_height),
+            pygame.FULLSCREEN | pygame.DOUBLEBUF
+        )
+        
         pygame.display.set_caption(GAME_TITLE)
 
         # Set window icon
@@ -1437,7 +1454,7 @@ class Game:
         self.flashes = []
 
         self.holes = []
-        gx = (SCREEN_WIDTH - GRID_COLS * HOLE_WIDTH) // 2
+        gx = (self.screen_width - GRID_COLS * HOLE_WIDTH) // 2
         gy = 135
         for r in range(GRID_ROWS):
             for c in range(GRID_COLS):
@@ -1805,7 +1822,7 @@ class Game:
 
         # timer bar
         bw, bh = 280, 22
-        bx = SCREEN_WIDTH - bw - 20
+        bx = self.screen_width - bw - 20
         by = 15
         frac = max(0, self.time_left / GAME_DURATION)
         tc = C_TIMER if frac > 0.15 else C_TIMER_LOW
@@ -1840,31 +1857,31 @@ class Game:
         fy = 95
         for txt, col, _ in self.flashes:
             ft = self.f_md.render(txt, True, col)
-            self.scr.blit(ft, (SCREEN_WIDTH // 2 - ft.get_width() // 2, fy))
+            self.scr.blit(ft, (self.screen_width // 2 - ft.get_width() // 2, fy))
             fy += 32
 
         # footer
         self.scr.blit(
             self.f_xs.render("Numpad 1-9: Whack  |  ESC/Red Button: Menu", True,
                              (100, 100, 120)),
-            (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT - 25))
+            (self.screen_width // 2 - 150, self.screen_height - 25))
 
     def _draw_play(self):
         self.scr.fill(C_BG)
 
         if self.eff.on("freeze"):
-            ov = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+            ov = pygame.Surface((self.screen_width, self.screen_height), pygame.SRCALPHA)
             ov.fill((100, 200, 255, 15))
             self.scr.blit(ov, (0, 0))
         if self.eff.on("double"):
             p = abs(math.sin(pygame.time.get_ticks() / 300))
-            ov = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+            ov = pygame.Surface((self.screen_width, self.screen_height), pygame.SRCALPHA)
             ov.fill((255, 215, 0, int(8 * p)))
             self.scr.blit(ov, (0, 0))
 
         gw = GRID_COLS * HOLE_WIDTH + 20
         gh = GRID_ROWS * HOLE_HEIGHT + 20
-        gx = (SCREEN_WIDTH - gw) // 2
+        gx = (self.screen_width - gw) // 2
         pygame.draw.rect(self.scr, (20, 20, 40), (gx, 125, gw, gh),
                          border_radius=12)
         pygame.draw.rect(self.scr, (0, 80, 120), (gx, 125, gw, gh),
@@ -1893,13 +1910,13 @@ class Game:
         title_font = pygame.font.SysFont("monospace", 64, bold=True)
         t = title_font.render(self.config["theme"]["title"], True, tc)
         y = 40
-        self.scr.blit(t, (SCREEN_WIDTH // 2 - t.get_width() // 2, y))
+        self.scr.blit(t, (self.screen_width // 2 - t.get_width() // 2, y))
 
         subtitle_font = pygame.font.SysFont("monospace", 36, bold=True)
         t2 = subtitle_font.render(self.config["theme"]["subtitle"], True,
                                 (100, 220, 150))
         y += 68
-        self.scr.blit(t2, (SCREEN_WIDTH // 2 - t2.get_width() // 2, y))
+        self.scr.blit(t2, (self.screen_width // 2 - t2.get_width() // 2, y))
 
         opts = [
             (self.config["ui_labels"]["buttons"]["start"], C_TEXT),
@@ -1909,13 +1926,13 @@ class Game:
         y += 80
         for txt, col in opts:
             r = subtitle_font.render(txt, True, col)
-            self.scr.blit(r, (SCREEN_WIDTH // 2 - r.get_width() // 2, y))
+            self.scr.blit(r, (self.screen_width // 2 - r.get_width() // 2, y))
             y += 40
 
         y += 40
         self.scr.blit(subtitle_font.render("========= ENTITY GUIDE =========", True,
                                             (180, 180, 200)),
-                        (SCREEN_WIDTH // 2 - 350, y))
+                        (self.screen_width // 2 - 350, y))
         y += 45
 
         SPR = 44   # sprite render size in pixels
@@ -1944,7 +1961,7 @@ class Game:
 
             sprites_w = len(sprites) * SPR + max(0, len(sprites) - 1) * 4
             total_w = sprites_w + GAP + r.get_width()
-            sx = SCREEN_WIDTH // 2 - total_w // 2
+            sx = self.screen_width // 2 - total_w // 2
 
             for i, spr in enumerate(sprites):
                 self.scr.blit(spr, (sx + i * (SPR + 4),
@@ -1962,15 +1979,15 @@ class Game:
             "1  2  3    Watch for disguised spies & phishing!",
         ]:
             r = self.f_md.render(line, True, (120, 120, 140))
-            self.scr.blit(r, (SCREEN_WIDTH // 2 - r.get_width() // 2, y))
+            self.scr.blit(r, (self.screen_width // 2 - r.get_width() // 2, y))
             y += 30
 
     def _draw_over(self):
         self.scr.fill(C_BG)
         t = self.f_lg.render(self.config["theme"]["game_over_title"], True, C_WARNING)
-        self.scr.blit(t, (SCREEN_WIDTH // 2 - t.get_width() // 2, 30))
+        self.scr.blit(t, (self.screen_width // 2 - t.get_width() // 2, 30))
         t2 = self.f_lg.render(f"{self.config['theme']['score_label']}: {self.score}", True, C_TEXT)
-        self.scr.blit(t2, (SCREEN_WIDTH // 2 - t2.get_width() // 2, 90))
+        self.scr.blit(t2, (self.screen_width // 2 - t2.get_width() // 2, 90))
 
         acc = (self.hits / self.whacks * 100) if self.whacks else 0
         stats = [
@@ -1987,52 +2004,52 @@ class Game:
         y = 160
         for s in stats:
             r = self.f_md.render(s, True, (180, 180, 200))
-            self.scr.blit(r, (SCREEN_WIDTH // 2 - r.get_width() // 2, y))
+            self.scr.blit(r, (self.screen_width // 2 - r.get_width() // 2, y))
             y += 35
 
         y += 12
         r1 = self.f_md.render(self.config["ui_labels"]["buttons"]["play_again"], True, C_TEXT)
-        self.scr.blit(r1, (SCREEN_WIDTH // 2 - r1.get_width() // 2, y))
+        self.scr.blit(r1, (self.screen_width // 2 - r1.get_width() // 2, y))
         r2 = self.f_sm.render(self.config["ui_labels"]["buttons"]["menu"], True, (220, 60, 60))
-        self.scr.blit(r2, (SCREEN_WIDTH // 2 - r2.get_width() // 2, y + 38))
+        self.scr.blit(r2, (self.screen_width // 2 - r2.get_width() // 2, y + 38))
         r3 = self.f_sm.render(self.config["ui_labels"]["buttons"]["view_leaderboard"], True, (255, 215, 0))
-        self.scr.blit(r3, (SCREEN_WIDTH // 2 - r3.get_width() // 2, y + 66))
+        self.scr.blit(r3, (self.screen_width // 2 - r3.get_width() // 2, y + 66))
 
     def _draw_name(self):
         self.scr.fill(C_BG)
         t = self.f_lg.render(self.config["theme"]["high_score_title"], True, C_COMBO)
-        self.scr.blit(t, (SCREEN_WIDTH // 2 - t.get_width() // 2, 60))
+        self.scr.blit(t, (self.screen_width // 2 - t.get_width() // 2, 60))
         t2 = self.f_lg.render(f"{self.config['theme']['score_label']}: {self.score}", True, C_TEXT)
-        self.scr.blit(t2, (SCREEN_WIDTH // 2 - t2.get_width() // 2, 130))
+        self.scr.blit(t2, (self.screen_width // 2 - t2.get_width() // 2, 130))
         self.scr.blit(
             self.f_md.render(self.config["ui_labels"]["buttons"]["enter_name"], True, (200, 200, 220)),
-            (SCREEN_WIDTH // 2 - 200, 220))
+            (self.screen_width // 2 - 200, 220))
 
         self.cur_blink += 0.08
         cur = "|" if math.sin(self.cur_blink) > 0 else " "
-        bg = pygame.Rect(SCREEN_WIDTH // 2 - 200, 270, 400, 60)
+        bg = pygame.Rect(self.screen_width // 2 - 200, 270, 400, 60)
         pygame.draw.rect(self.scr, (30, 30, 50), bg, border_radius=8)
         pygame.draw.rect(self.scr, C_HOLE_BORDER, bg, 2, border_radius=8)
         nt = self.f_lg.render(self.pname + cur, True, C_SCORE)
-        self.scr.blit(nt, (SCREEN_WIDTH // 2 - nt.get_width() // 2, 278))
+        self.scr.blit(nt, (self.screen_width // 2 - nt.get_width() // 2, 278))
         self.scr.blit(
             self.f_sm.render(self.config["ui_labels"]["buttons"]["confirm_name"], True,
                             (130, 130, 150)),
-            (SCREEN_WIDTH // 2 - 280, 350))
+            (self.screen_width // 2 - 280, 350))
 
     def _draw_lb(self):
         self.scr.fill(C_BG)
         t = self.f_lg.render("LEADERBOARD", True, C_TEXT)
-        self.scr.blit(t, (SCREEN_WIDTH // 2 - t.get_width() // 2, 30))
+        self.scr.blit(t, (self.screen_width // 2 - t.get_width() // 2, 30))
 
         if not self.lb.entries:
             r = self.f_md.render("No scores yet!", True, (150, 150, 170))
-            self.scr.blit(r, (SCREEN_WIDTH // 2 - r.get_width() // 2, 140))
+            self.scr.blit(r, (self.screen_width // 2 - r.get_width() // 2, 140))
         else:
             # Calculate the total width needed for the centered table
             col_widths = [120, 400, 160, 180, 150, 150, 320]  # Approximate widths for each column
             total_width = sum(col_widths)
-            start_x = (SCREEN_WIDTH - total_width) // 2
+            start_x = (self.screen_width - total_width) // 2
             y = 135
             
             hdr = (f"{'#':<4}{'Name':<20}{'Score':<8}{'Combo':<7}"
@@ -2051,14 +2068,14 @@ class Game:
                 self.scr.blit(self.f_md.render(line, True, col), (start_x, y))
                 y += 35
 
-        y = SCREEN_HEIGHT - 200
+        y = self.screen_height - 200
         self.scr.blit(
             self.f_md.render("ESC, M, or Red Button for Menu", True, (220, 60, 60)),
-            (SCREEN_WIDTH // 2 - 300, y))
+            (self.screen_width // 2 - 300, y))
         self.scr.blit(
             self.f_md.render(self.config["ui_labels"]["buttons"]["start"], True,
                             C_TEXT),
-            (SCREEN_WIDTH // 2 - 375, y + 40))
+            (self.screen_width // 2 - 375, y + 40))
     
     def _make_window_icon(self):
         # Try loading external icon first
