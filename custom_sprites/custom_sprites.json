@@ -1,0 +1,52 @@
+{
+  "hacker": {
+    "variants": 3,
+    "colors": [
+      [200, 40, 40],
+      [180, 50, 180],
+      [160, 60, 40]
+    ],
+    "features": {
+      "has_ski_mask": true,
+      "has_money_bag": true,
+      "money_symbol": "$"
+    }
+  },
+  "apt": {
+    "colors": {
+      "body": [40, 0, 60],
+      "tie": [255, 215, 0],
+      "hair": [30, 20, 10]
+    },
+    "features": {
+      "has_sunglasses": true,
+      "has_pyramid": true,
+      "label": "APT"
+    }
+  },
+  "boss": {
+    "aura_colors": [
+      [255, 50, 0, 30],
+      [255, 50, 0, 60],
+      [255, 50, 0, 90]
+    ],
+    "body_color": [20, 20, 20],
+    "features": {
+      "has_chain": true,
+      "has_top_hat": true,
+      "has_monocle": true,
+      "eye_symbol": "$",
+      "label": "BOSS"
+    }
+  },
+  "powerups": {
+    "freeze": {
+      "color": [100, 200, 255],
+      "center_color": [200, 230, 255]
+    },
+    "double": {
+      "text": "2X",
+      "text_color": [255, 50, 50]
+    }
+  }
+}

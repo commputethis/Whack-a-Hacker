@@ -3,3 +3,6 @@ assets/
 whack-a-hacker.sh
 AppImages/
 build-appimage/
+__pycache__/
+*.pyc
+*.pyo
