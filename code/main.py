@@ -1930,7 +1930,7 @@ class Game:
             y += 40
 
         y += 40
-        self.scr.blit(subtitle_font.render("========= ENTITY GUIDE =========", True,
+        self.scr.blit(subtitle_font.render("========= POINTS GUIDE =========", True,
                                             (180, 180, 200)),
                         (self.screen_width // 2 - 350, y))
         y += 45
@@ -1970,6 +1970,11 @@ class Game:
             self.scr.blit(r, (sx + sprites_w + GAP,
                             y + (LINE - r.get_height()) // 2))
             y += LINE
+        
+        c = subtitle_font.render("3+ COMBOS — BONUS POINTS! +1 pt", True,
+                                           (100, 255, 200))
+        self.scr.blit(c, (self.screen_width // 2 - c.get_width() // 2, y))
+        y += c.get_height()
 
         y += 20
         for line in [
