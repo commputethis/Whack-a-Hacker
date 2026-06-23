@@ -235,8 +235,8 @@ class SFX:
     @classmethod
     def phishing_trap(cls):
         return cls._snd(cls._cat(
-            cls._buf(250, 100, 0.2, "saw"),
-            cls._buf(150, 200, 0.2, "saw")))
+            cls._buf(250, 100, 0.2, "sine"),
+            cls._buf(150, 200, 0.2, "sine")))
 
     @classmethod
     def social_hit(cls):
@@ -1332,6 +1332,7 @@ class Game:
             ("apt",              Sprites.apt,              Sprites.gen_apt),
             ("boss",             Sprites.boss,             Sprites.gen_boss),
             ("social_engineer",  Sprites.social_engineer,  Sprites.gen_social_engineer),
+            ("phishing",         Sprites.phishing,         Sprites.gen_phishing),
         ]
         for key, default_gen, custom_gen in enemy_map:
             filenames = MOLE_IMAGE_PATHS.get(key, [])
@@ -1349,7 +1350,6 @@ class Game:
             ("shield",    Sprites.shield,    Sprites.gen_shield),
             ("it_admin",  Sprites.it_admin,  Sprites.gen_it_admin),
             ("lock",      Sprites.lock,      Sprites.gen_lock),
-            ("phishing",  Sprites.phishing,  Sprites.gen_phishing),
         ]
         for key, default_gen, custom_gen in friendly_map:
             filenames = FRIENDLY_IMAGE_PATHS.get(key, [])
@@ -1595,7 +1595,8 @@ class Game:
 
         elif tag == "hit":
             base = {"hacker": SCORE_HIT_HACKER, "apt": SCORE_HIT_APT,
-                    "social_engineer": SCORE_HIT_SOCIAL_ENGINEER
+                    "social_engineer": SCORE_HIT_SOCIAL_ENGINEER,
+                    "phishing": SCORE_HIT_PHISHING
                     }.get(detail, SCORE_HIT_HACKER)
             pts = base * mul
             self.combo += 1
@@ -1605,13 +1606,19 @@ class Game:
                 self.se_hits += 1
                 self._play("social")
                 self._flash(self.config["messages"]["hit_social"].format(pts=pts), (100, 255, 200), 800)
+            elif detail == "phishing":
+                pts = SCORE_HIT_PHISHING
+                self.ph_hits += 1
+                self._play("phishing")
+                self._flash(self.config["messages"]["hit_phishing"].format(pts=pts), C_TEXT, 800)
+            elif detail != "social_engineer":
+                self._play("hit")
+                self._flash(self.config["messages"]["hit_hacker"].format(pts=pts), C_TEXT, 500)
             if self.combo >= COMBO_THRESHOLD:
                 bonus = COMBO_BONUS * mul
                 pts += bonus
                 self._play("combo", self.combo)
                 self._flash(self.config["messages"]["combo"].format(combo=self.combo, pts=pts), C_COMBO, 600)
-            elif detail != "social_engineer":
-                self._flash(self.config["messages"]["hit_hacker"].format(pts=pts), C_TEXT, 500)
             self.score += pts
             if detail == "social_engineer":
                 self.ptcl.emit(px, py, (100, 255, 200), 15)
@@ -1620,16 +1627,10 @@ class Game:
                 self.ptcl.emit(px, py, (0, 255, 200), 12)
 
         elif tag == "bad":
-            if detail == "phishing":
-                pts = SCORE_HIT_PHISHING
-                self.ph_hits += 1
-                self._play("phishing")
-                self._flash(self.config["messages"]["hit_phishing"].format(pts=pts), C_TEXT, 800)
-            else:
-                pts = SCORE_HIT_FRIENDLY
-                self.f_hits += 1
-                self._play("friendly")
-                self._flash(self.config["messages"]["hit_friendly"].format(pts=pts), C_WARNING, 800)
+            pts = SCORE_HIT_FRIENDLY
+            self.f_hits += 1
+            self._play("friendly")
+            self._flash(self.config["messages"]["hit_friendly"].format(pts=pts), C_WARNING, 800)
             self.score += pts
             self.combo = 0 if detail != "phishing" else self.combo
             self.ptcl.emit(px, py, (255, 50, 50), 8)
