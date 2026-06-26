@@ -1988,6 +1988,38 @@ class Game:
             self.scr.blit(r, (self.screen_width // 2 - r.get_width() // 2, y))
             y += 30
 
+    def _draw_quit_confirm(self):
+        """Draw quit confirmation dialog over the menu"""
+        # First draw the menu in background
+        self._draw_menu()
+        
+        # Darken the background
+        overlay = pygame.Surface((self.screen_width, self.screen_height), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 180))
+        self.scr.blit(overlay, (0, 0))
+        
+        # Draw confirmation dialog box
+        box_w, box_h = 700, 200
+        box_x = (self.screen_width - box_w) // 2
+        box_y = (self.screen_height - box_h) // 2
+        
+        pygame.draw.rect(self.scr, (40, 40, 60), (box_x, box_y, box_w, box_h), border_radius=12)
+        pygame.draw.rect(self.scr, (255, 80, 80), (box_x, box_y, box_w, box_h), 3, border_radius=12)
+        
+        # Draw confirmation text
+        title_font = pygame.font.SysFont("monospace", 42, bold=True)
+        t = title_font.render("QUIT GAME?", True, (255, 80, 80))
+        self.scr.blit(t, (self.screen_width // 2 - t.get_width() // 2, box_y + 30))
+        
+        # Draw options
+        option_font = pygame.font.SysFont("monospace", 28, bold=True)
+        
+        enter_text = option_font.render("Green Button or ENTER - Yes, Exit Game", True, (100, 255, 150))
+        self.scr.blit(enter_text, (self.screen_width // 2 - enter_text.get_width() // 2, box_y + 90))
+        
+        esc_text = option_font.render("Red Button or ESC - No, Return to Menu", True, (255, 100, 100))
+        self.scr.blit(esc_text, (self.screen_width // 2 - esc_text.get_width() // 2, box_y + 130))
+
     def _draw_over(self):
         self.scr.fill(C_BG)
         t = self.f_lg.render(self.config["theme"]["game_over_title"], True, C_WARNING)
@@ -2141,6 +2173,8 @@ class Game:
 
                     # ---- per-state input ----
                     if self.state == "menu":
+                        # Get current key states
+                        keys = pygame.key.get_pressed()
                         if ev.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
                             self._reset()
                             self.state = "play"
@@ -2148,7 +2182,12 @@ class Game:
                         elif ev.key == pygame.K_l:
                             self.state = "lb"
                         elif ev.key == pygame.K_ESCAPE:
+                            self.state = "quit_confirm"
+                    elif self.state == "quit_confirm":
+                        if ev.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
                             alive = False
+                        elif ev.key == pygame.K_ESCAPE:
+                            self.state = "menu"
 
                     elif self.state == "play":
                         if ev.key == pygame.K_ESCAPE:
@@ -2210,6 +2249,8 @@ class Game:
                         self._reset()
                         self.state = "play"
                         self._play("start")
+                    elif self.state == "quit_confirm":
+                        self.state = "menu"
 
                 elif ev.type == pygame.MOUSEMOTION:
                     self.hammer_pos = ev.pos
@@ -2234,6 +2275,7 @@ class Game:
             "over": self._draw_over,
             "name": self._draw_name,
             "lb":   self._draw_lb,
+            "quit_confirm": self._draw_quit_confirm,
             }.get(self.state, self._draw_menu)()
 
             pygame.display.flip()
