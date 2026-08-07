@@ -94,9 +94,38 @@ it immediately. The illustrated Points Guide updates with the selected mode.
 
 #### Combo Bonus
 
-| Combo Level | Bonus Multiplier | Notes |
-| ----------- | ---------------- | - |
-| x3+ | +1 points per hit | Resets after miss or whacking a friendly |
+Quick Play uses one combo tier:
+
+- Combo 5+: +1 bonus point per successful scoring hit.
+- The fifth hit earns the first bonus point, and the tier restarts after a
+  broken streak.
+
+Cyber Challenge uses three non-cumulative combo tiers:
+
+- Combo 5-24: +1 bonus point per successful scoring hit.
+- Combo 25-49: +2 bonus points per successful scoring hit.
+- Combo 50+: +3 bonus points per successful scoring hit.
+
+Only the highest applicable Cyber Challenge tier is awarded for each hit. A
+50+ combo therefore earns +3, not +1 +2 +3.
+
+#### Perfect Run
+
+A Perfect Run adds **+50 points** in either mode.
+
+- In Quick Play, earn it by missing no required enemy hits and fully defeating
+  every boss with all three hits.
+- In Cyber Challenge, the same enemy and boss requirements apply, and zero
+  friendlies may be hit. Power-ups are excluded: collecting, missing, or
+  ignoring one does not affect Perfect Run.
+- Pressing an empty hole does not affect Perfect Run in either mode.
+
+Cyber Challenge's **Clean Run** still means zero friendlies hit. Perfect Run is
+stricter because it also requires that no required enemy hits were missed.
+
+The final score, including all combo and Perfect Run bonuses, is calculated
+before leaderboard qualification. The Game Over screen shows the actual combo
+bonus points earned in each tier across all streaks.
 
 ### Power-Ups
 
@@ -139,6 +168,8 @@ detailed performance feedback, including hackers whacked and missed, friendlies
 hit, threats stopped, bosses defeated, power-ups collected, and maximum combo.
 A **Clean Run** is awarded only in Cyber Challenge when no friendlies are hit; it
 is a visual achievement only and does not affect score or leaderboard ranking.
+Perfect Run is a separate, stricter achievement that awards the scoring bonus
+described above.
 
 ## License
 

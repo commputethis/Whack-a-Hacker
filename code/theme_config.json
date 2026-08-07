@@ -71,7 +71,9 @@
       "number_keys": "NUMBER KEYS 1-9 TO WHACK",
       "hit_everything": "HIT EVERYTHING!",
       "boss_hits": "{hits} HITS",
-      "combo_bonus": "COMBO {threshold}+  +{bonus} PT"
+      "combo_bonus": "COMBO {threshold}+  +{bonus} PT",
+      "combo_bonus_per_hit": "{threshold}+ COMBO  +{bonus} {points} / HIT",
+      "perfect_run": "PERFECT RUN"
     },
     "stats": {
       "hits": "Hackers Whacked",
@@ -81,7 +83,10 @@
       "se_hits": "Spies Caught",
       "bosses_k": "Bosses Defeated",
       "pu_got": "Power-ups Collected",
-      "max_combo": "Max Combo"
+      "max_combo": "Max Combo",
+      "final_score": "FINAL SCORE",
+      "perfect_run": "PERFECT RUN",
+      "total_bonus": "TOTAL BONUS"
     },
     "buttons": {
       "start": "Press ENTER or Green Button to Start",

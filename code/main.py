@@ -69,8 +69,17 @@ SCORE_HIT_PHISHING = 2
 SCORE_HIT_FRIENDLY = -1
 
 
-COMBO_THRESHOLD = 3
-COMBO_BONUS = 1
+QUICK_COMBO_THRESHOLD = 5
+QUICK_COMBO_BONUS = 1
+
+CHALLENGE_COMBO_TIER_1_THRESHOLD = 5
+CHALLENGE_COMBO_TIER_2_THRESHOLD = 25
+CHALLENGE_COMBO_TIER_3_THRESHOLD = 50
+CHALLENGE_COMBO_TIER_1_BONUS = 1
+CHALLENGE_COMBO_TIER_2_BONUS = 2
+CHALLENGE_COMBO_TIER_3_BONUS = 3
+
+PERFECT_RUN_BONUS = 50
 
 # ---- Difficulty ramp ----
 RAMP_INTERVAL = 15       # seconds between difficulty bumps
@@ -1286,7 +1295,9 @@ class Game:
                     "number_keys": "NUMBER KEYS 1-9 TO WHACK",
                     "hit_everything": "HIT EVERYTHING!",
                     "boss_hits": "{hits} HITS",
-                    "combo_bonus": "COMBO {threshold}+  +{bonus} PT"
+                    "combo_bonus": "COMBO {threshold}+  +{bonus} PT",
+                    "combo_bonus_per_hit": "{threshold}+ COMBO  +{bonus} {points} / HIT",
+                    "perfect_run": "PERFECT RUN"
                 },
                 "stats": {
                     "hits": "Hackers Whacked",
@@ -1296,7 +1307,10 @@ class Game:
                     "se_hits": "Spies Caught",
                     "bosses_k": "Bosses Defeated",
                     "pu_got": "Power-ups Collected",
-                    "max_combo": "Max Combo"
+                    "max_combo": "Max Combo",
+                    "final_score": "FINAL SCORE",
+                    "perfect_run": "PERFECT RUN",
+                    "total_bonus": "TOTAL BONUS"
                 },
                 "buttons": {
                     "start": "Press ENTER or Green Button to Start",
@@ -1515,6 +1529,12 @@ class Game:
         self.score = 0
         self.combo = 0
         self.max_combo = 0
+        self.combo_bonus_tier_1 = 0
+        self.combo_bonus_tier_2 = 0
+        self.combo_bonus_tier_3 = 0
+        self.perfect_run = False
+        self.required_enemy_missed = False
+        self.score_finalized = False
         self.hits = 0
         self.f_hits = 0
         self.ph_hits = 0
@@ -1632,6 +1652,45 @@ class Game:
 
     # ---- whack handler ----------------------------------------------------
 
+    def _award_combo_bonus(self, multiplier=1):
+        """Award and track the current mode's non-cumulative combo tier."""
+        tier = 0
+        bonus = 0
+        if self.selected_mode == "quick":
+            if self.combo >= QUICK_COMBO_THRESHOLD:
+                tier = 1
+                bonus = QUICK_COMBO_BONUS
+        elif self.combo >= CHALLENGE_COMBO_TIER_3_THRESHOLD:
+            tier = 3
+            bonus = CHALLENGE_COMBO_TIER_3_BONUS
+        elif self.combo >= CHALLENGE_COMBO_TIER_2_THRESHOLD:
+            tier = 2
+            bonus = CHALLENGE_COMBO_TIER_2_BONUS
+        elif self.combo >= CHALLENGE_COMBO_TIER_1_THRESHOLD:
+            tier = 1
+            bonus = CHALLENGE_COMBO_TIER_1_BONUS
+
+        awarded = bonus * multiplier
+        if tier:
+            attr = f"combo_bonus_tier_{tier}"
+            setattr(self, attr, getattr(self, attr) + awarded)
+        return awarded
+
+    def _finalize_score(self):
+        """Apply end-of-game bonuses exactly once before qualification."""
+        if self.score_finalized:
+            return
+
+        active_enemy_incomplete = any(
+            h.active and h.is_enemy and not h.hit for h in self.holes)
+        no_friendly_hits = self.selected_mode == "quick" or self.f_hits == 0
+        self.perfect_run = (not self.required_enemy_missed
+                            and not active_enemy_incomplete
+                            and no_friendly_hits)
+        if self.perfect_run:
+            self.score += PERFECT_RUN_BONUS
+        self.score_finalized = True
+
     def _whack(self, r, c):
         h = self._hole(r, c)
         if not h:
@@ -1661,10 +1720,11 @@ class Game:
 
         elif tag == "boss_ko":
             pts = SCORE_HIT_BOSS * mul
-            self.score += pts
             self.bosses_k += 1
             self.combo += 1
             self.max_combo = max(self.max_combo, self.combo)
+            pts += self._award_combo_bonus(mul)
+            self.score += pts
             self.hits += 1
             self.boss_up = False
             self._play("boss_ko")
@@ -1699,8 +1759,8 @@ class Game:
             elif detail != "social_engineer":
                 self._play("hit")
                 self._flash(self.config["messages"]["hit_hacker"].format(pts=pts), C_TEXT, 500)
-            if self.combo >= COMBO_THRESHOLD:
-                bonus = COMBO_BONUS * mul
+            bonus = self._award_combo_bonus(mul)
+            if bonus:
                 pts += bonus
                 self._play("combo", self.combo)
                 self._flash(self.config["messages"]["combo"].format(combo=self.combo, pts=pts), C_COMBO, 600)
@@ -1745,6 +1805,7 @@ class Game:
         if self.time_left <= 0:
             self.time_left = 0
             self._play("over")
+            self._finalize_score()
             self.state = ("name" if self.lb.qualifies(
                 self.score, self.selected_mode) else "over")
             self.pname = ""
@@ -1798,6 +1859,7 @@ class Game:
                 if was_enemy and not was_hit:
                     self.missed += 1
                     self.combo = 0
+                    self.required_enemy_missed = True
                 if etype == "boss" and not was_hit:
                     self.boss_up = False
                 if etype and etype.startswith("pu_"):
@@ -1908,7 +1970,10 @@ class Game:
         self.scr.blit(mode_text,
                       (self.screen_width // 2 - mode_text.get_width() // 2, 12))
         if self.combo >= 2:
-            col = C_COMBO if self.combo >= COMBO_THRESHOLD else (200, 200, 200)
+            first_bonus = (QUICK_COMBO_THRESHOLD
+                           if self.selected_mode == "quick"
+                           else CHALLENGE_COMBO_TIER_1_THRESHOLD)
+            col = C_COMBO if self.combo >= first_bonus else (200, 200, 200)
             self.scr.blit(
                 self.f_sm.render(f"Combo: {self.combo}x", True, col),
                 (20, 46))
@@ -2065,23 +2130,48 @@ class Game:
                        + detail_count * self.f_xx.get_height())
         return y + self.f_xs_bold.get_height() + 2 + item_height + 5
 
-    def _draw_bonus_guide(self, heading, combo, region, y, color):
-        """Draw the combo rule in its own bordered bonus category."""
+    def _draw_bonus_guide(self, heading, lines, region, y, color):
+        """Draw mode-specific combo and Perfect Run bonus rules."""
         title = self.f_xs_bold.render(heading, True, color)
-        combo_text = self.f_xs_bold.render(combo, True, color)
+        rendered_lines = [self.f_xx.render(line, True, color) for line in lines]
         title_x = region.centerx - title.get_width() // 2
-        combo_y = y + title.get_height() + 2
+        line_y = y + title.get_height() + 2
         box_top = y + title.get_height() // 2
+        line_height = self.f_xx.get_height()
         box = pygame.Rect(region.x, box_top, region.width,
-                          combo_y + combo_text.get_height() + 5 - box_top)
+                          line_y + len(rendered_lines) * line_height + 5 - box_top)
         pygame.draw.rect(self.scr, color, box, 1, border_radius=7)
         legend_bg = pygame.Rect(title_x - 7, y, title.get_width() + 14,
                                 title.get_height())
         pygame.draw.rect(self.scr, C_BG, legend_bg)
         self.scr.blit(title, (title_x, y))
-        self.scr.blit(combo_text,
-                      (region.centerx - combo_text.get_width() // 2, combo_y))
+        for rendered in rendered_lines:
+            self.scr.blit(rendered,
+                          (region.centerx - rendered.get_width() // 2, line_y))
+            line_y += line_height
         return box.bottom
+
+    def _bonus_guide_lines(self):
+        labels = self.config["ui_labels"]["guide"]
+
+        def combo_line(threshold, bonus):
+            points = "PT" if bonus == 1 else "PTS"
+            return labels["combo_bonus_per_hit"].format(
+                threshold=threshold, bonus=bonus, points=points)
+
+        if self.selected_mode == "quick":
+            lines = [combo_line(QUICK_COMBO_THRESHOLD, QUICK_COMBO_BONUS)]
+        else:
+            lines = [
+                combo_line(CHALLENGE_COMBO_TIER_1_THRESHOLD,
+                           CHALLENGE_COMBO_TIER_1_BONUS),
+                combo_line(CHALLENGE_COMBO_TIER_2_THRESHOLD,
+                           CHALLENGE_COMBO_TIER_2_BONUS),
+                combo_line(CHALLENGE_COMBO_TIER_3_THRESHOLD,
+                           CHALLENGE_COMBO_TIER_3_BONUS),
+            ]
+        lines.append(f"{labels['perfect_run']}  +{PERFECT_RUN_BONUS} PTS")
+        return lines
 
     def _keymap_font(self, size):
         """Cache the responsive bold fonts used by the keymap guide."""
@@ -2193,8 +2283,7 @@ class Game:
             C_WARNING, target_size)
 
         lower_y = enemy_bottom + 5
-        combo = labels["combo_bonus"].format(
-            threshold=COMBO_THRESHOLD, bonus=COMBO_BONUS)
+        bonus_lines = self._bonus_guide_lines()
         if self.selected_mode == "quick":
             rule = self.f_md.render(labels["hit_everything"], True, C_COMBO)
             self.scr.blit(rule,
@@ -2205,7 +2294,7 @@ class Game:
                 self.screen_width // 2 - bonus_width // 2, 0,
                 bonus_width, 0)
             bonus_bottom = self._draw_bonus_guide(
-                labels["bonus_points"], combo, bonus_region,
+                labels["bonus_points"], bonus_lines, bonus_region,
                 lower_y + rule.get_height() + 4, C_TEXT)
             self._draw_keymap_guide(bonus_bottom)
             return
@@ -2248,7 +2337,7 @@ class Game:
             self.screen_width // 2 - bonus_width // 2, 0,
             bonus_width, 0)
         bonus_bottom = self._draw_bonus_guide(
-            labels["bonus_points"], combo, bonus_region,
+            labels["bonus_points"], bonus_lines, bonus_region,
             max(protect_bottom, collect_bottom) + 5, C_TEXT)
         self._draw_keymap_guide(bonus_bottom)
 
@@ -2345,11 +2434,12 @@ class Game:
 
     def _draw_over(self):
         self.scr.fill(C_BG)
+        stat_labels = self.config["ui_labels"]["stats"]
         t = self.f_lg.render(self.config["theme"]["game_over_title"], True, C_WARNING)
         self.scr.blit(t, (self.screen_width // 2 - t.get_width() // 2, 30))
         mode = self.f_sm.render(self._mode_label().upper(), True, C_HOLE_BORDER)
         self.scr.blit(mode, (self.screen_width // 2 - mode.get_width() // 2, 82))
-        t2 = self.f_lg.render(f"{self.config['theme']['score_label']}: {self.score}", True, C_TEXT)
+        t2 = self.f_lg.render(f"{stat_labels['final_score']}: {self.score}", True, C_TEXT)
         self.scr.blit(t2, (self.screen_width // 2 - t2.get_width() // 2, 115))
 
         if self.selected_mode == "quick":
@@ -2371,18 +2461,54 @@ class Game:
                 f"{self.config['ui_labels']['stats']['pu_got']}: {self.pu_got}",
                 f"{self.config['ui_labels']['stats']['max_combo']}: {self.max_combo}x",
             ]
+        bonus_rows = []
+        tier_values = (
+            ((QUICK_COMBO_THRESHOLD, self.combo_bonus_tier_1),)
+            if self.selected_mode == "quick" else (
+                (CHALLENGE_COMBO_TIER_1_THRESHOLD, self.combo_bonus_tier_1),
+                (CHALLENGE_COMBO_TIER_2_THRESHOLD, self.combo_bonus_tier_2),
+                (CHALLENGE_COMBO_TIER_3_THRESHOLD, self.combo_bonus_tier_3),
+            )
+        )
+        for threshold, points in tier_values:
+            if points:
+                bonus_rows.append((f"{threshold}+ COMBO", points))
+        if self.perfect_run:
+            bonus_rows.append((stat_labels["perfect_run"], PERFECT_RUN_BONUS))
+        total_bonus = (self.combo_bonus_tier_1 + self.combo_bonus_tier_2
+                       + self.combo_bonus_tier_3
+                       + (PERFECT_RUN_BONUS if self.perfect_run else 0))
+
+        stats_x = self.screen_width // 3 if bonus_rows else self.screen_width // 2
         y = 175
         for s in stats:
-            r = self.f_md.render(s, True, (180, 180, 200))
-            self.scr.blit(r, (self.screen_width // 2 - r.get_width() // 2, y))
+            r = self.f_sm.render(s, True, (180, 180, 200))
+            self.scr.blit(r, (stats_x - r.get_width() // 2, y))
             y += 35
 
         if (self._mode_config()["clean_run_enabled"] and self.f_hits == 0):
-            r = self.f_md.render("CLEAN RUN", True, C_COMBO)
-            self.scr.blit(r, (self.screen_width // 2 - r.get_width() // 2, y))
+            r = self.f_sm_bold.render("CLEAN RUN", True, C_COMBO)
+            self.scr.blit(r, (stats_x - r.get_width() // 2, y))
             y += 35
 
-        y += 12
+        if bonus_rows:
+            bonus_x = self.screen_width * 2 // 3
+            bonus_y = 175
+            heading = self.f_sm_bold.render(
+                self.config["ui_labels"]["guide"]["bonus_points"], True, C_COMBO)
+            self.scr.blit(heading,
+                          (bonus_x - heading.get_width() // 2, bonus_y))
+            bonus_y += 38
+            for label, points in bonus_rows:
+                row = self.f_sm.render(f"{label:<16} +{points}", True, C_TEXT)
+                self.scr.blit(row, (bonus_x - row.get_width() // 2, bonus_y))
+                bonus_y += 34
+            total = self.f_sm_bold.render(
+                f"{stat_labels['total_bonus']:<16} +{total_bonus}",
+                True, C_COMBO)
+            self.scr.blit(total, (bonus_x - total.get_width() // 2, bonus_y + 4))
+
+        y = self.screen_height - 120
         r1 = self.f_md.render(self.config["ui_labels"]["buttons"]["play_again"], True, C_TEXT)
         self.scr.blit(r1, (self.screen_width // 2 - r1.get_width() // 2, y))
         r2 = self.f_sm.render(self.config["ui_labels"]["buttons"]["menu"], True, (220, 60, 60))
