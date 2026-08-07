@@ -34,6 +34,7 @@ from pathlib import Path
 GAME_TITLE = "Whack-a-Hacker!"
 GAME_DURATION = 60  # seconds
 FPS = 60
+POST_GAME_IDLE_TIMEOUT_MS = 120000
 
 # _DATA_DIR = os.environ.get("WHACK_DATA_DIR", "/tmp/whack-a-hacker")
 # if not _DATA_DIR:
@@ -1196,6 +1197,8 @@ class Game:
         self.selected_mode = "quick"
         self.leaderboard_mode = self.selected_mode
         self.state = "menu"
+        self.post_game_idle_state = None
+        self.post_game_idle_started_at = 0
         self._reset()
         self.pname = ""
         self.cur_blink = 0
@@ -2275,9 +2278,10 @@ class Game:
                       (self.screen_width // 2 - select.get_width() // 2, y))
         y += 35
 
+        mode_cards = self._menu_mode_rects(y)
         for key, number in (("quick", "1"), ("challenge", "2")):
             selected = key == self.selected_mode
-            box = pygame.Rect(self.screen_width // 2 - 410, y, 820, 72)
+            box = mode_cards[key]
             pygame.draw.rect(self.scr, (28, 45, 58) if selected else (25, 25, 45),
                              box, border_radius=10)
             pygame.draw.rect(self.scr, C_COMBO if selected else (70, 90, 110),
@@ -2505,6 +2509,34 @@ class Game:
 
     # ---- main loop --------------------------------------------------------
 
+    def _menu_mode_rects(self, top=154):
+        """Return the clickable rectangles used by the menu mode cards."""
+        x = self.screen_width // 2 - 410
+        return {
+            "quick": pygame.Rect(x, top, 820, 72),
+            "challenge": pygame.Rect(x, top + 78, 820, 72),
+        }
+
+    def _note_post_game_activity(self):
+        if self.state in ("over", "lb"):
+            self.post_game_idle_state = self.state
+            self.post_game_idle_started_at = pygame.time.get_ticks()
+
+    def _update_post_game_idle(self):
+        if self.state not in ("over", "lb"):
+            self.post_game_idle_state = None
+            return
+
+        now = pygame.time.get_ticks()
+        if self.post_game_idle_state != self.state:
+            self.post_game_idle_state = self.state
+            self.post_game_idle_started_at = now
+        elif now - self.post_game_idle_started_at >= POST_GAME_IDLE_TIMEOUT_MS:
+            if self.state == "lb":
+                self.selected_mode = self.leaderboard_mode
+            self.state = "menu"
+            self.post_game_idle_state = None
+
     def _select_menu_mode(self, key):
         """Handle menu-only selection keys without starting a game."""
         if key == pygame.K_UP:
@@ -2541,6 +2573,7 @@ class Game:
                     alive = False
 
                 elif ev.type == pygame.KEYDOWN:
+                    self._note_post_game_activity()
                     mods = pygame.key.get_mods()
 
                     # global: Ctrl+Shift+C → reset leaderboard
@@ -2594,7 +2627,7 @@ class Game:
                                         self.bosses_k, self.f_hits,
                                         self.selected_mode)
                             self.leaderboard_mode = self.selected_mode
-                            self.state = "lb"
+                            self.state = "over"
                         elif ev.key == pygame.K_BACKSPACE:
                             self.pname = self.pname[:-1]
                         elif (len(self.pname) < 20
@@ -2613,7 +2646,10 @@ class Game:
                             self.selected_mode = self.leaderboard_mode
                             self.state = "menu"
 
-                elif ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
+                elif ev.type == pygame.MOUSEBUTTONDOWN:
+                    self._note_post_game_activity()
+                    if ev.button != 1:
+                        continue
                     if self.state == "play":
                         self.hammer_swinging = True
                         self.hammer_timer = 150
@@ -2623,7 +2659,10 @@ class Game:
                                 self._whack(h.row, h.col)
                                 break
                     elif self.state == "menu":
-                        self._start_mode()
+                        for mode, box in self._menu_mode_rects().items():
+                            if box.collidepoint(ev.pos):
+                                self.selected_mode = mode
+                                break
                     elif self.state == "over":
                         self._start_mode()
                     elif self.state == "quit_confirm":
@@ -2635,6 +2674,7 @@ class Game:
             # update
             if self.state == "play":
                 self._update_play(dt)
+            self._update_post_game_idle()
 
             # Hide system cursor during gameplay, show it otherwise
             if self.state == "play":
