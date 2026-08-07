@@ -1175,6 +1175,7 @@ class Game:
         self.f_xs = pygame.font.SysFont("monospace", 20)
         self.f_xs_bold = pygame.font.SysFont("monospace", 20, bold=True)
         self.f_xx = pygame.font.SysFont("monospace", 16)
+        self._keymap_fonts = {}
 
         self.imgs = {}
         self.snds = {}
@@ -1278,6 +1279,8 @@ class Game:
                     "hit": "HIT",
                     "protect": "PROTECT",
                     "collect": "COLLECT",
+                    "bonus_points": "BONUS POINTS",
+                    "number_keys": "NUMBER KEYS 1-9 TO WHACK",
                     "hit_everything": "HIT EVERYTHING!",
                     "boss_hits": "{hits} HITS",
                     "combo_bonus": "COMBO {threshold}+  +{bonus} PT"
@@ -2025,13 +2028,131 @@ class Game:
         return bottom
 
     def _draw_guide_group(self, heading, items, region, y, color,
-                          sprite_size):
-        """Center a section heading over its related row of items."""
+                          sprite_size, box_bottom=None, center_content=False):
+        """Draw a bordered category with a centered heading and item row."""
         title = self.f_xs_bold.render(heading, True, color)
-        self.scr.blit(title,
-                      (region.centerx - title.get_width() // 2, y))
-        return self._draw_guide_row(
-            items, region, y + title.get_height() + 2, sprite_size)
+        title_x = region.centerx - title.get_width() // 2
+        row_y = y + title.get_height() + 2
+        if box_bottom is not None and center_content:
+            detail_count = max(
+                (1 if isinstance(details, str) else len(tuple(details)))
+                for _, _, details, _ in items)
+            natural_height = (self.f_xx.get_height() + 2 + sprite_size + 1
+                              + detail_count * self.f_xx.get_height())
+            available_height = box_bottom - 5 - row_y
+            row_y += max(0, (available_height - natural_height) // 2)
+        content_bottom = self._draw_guide_row(
+            items, region, row_y, sprite_size)
+        box_top = y + title.get_height() // 2
+        bottom = box_bottom if box_bottom is not None else content_bottom + 5
+        box = pygame.Rect(region.x, box_top, region.width, bottom - box_top)
+        pygame.draw.rect(self.scr, color, box, 1, border_radius=7)
+        legend_bg = pygame.Rect(title_x - 7, y, title.get_width() + 14,
+                                title.get_height())
+        pygame.draw.rect(self.scr, C_BG, legend_bg)
+        self.scr.blit(title, (title_x, y))
+        return box.bottom
+
+    def _guide_group_bottom(self, items, y, sprite_size):
+        """Calculate a category's natural bottom edge without drawing it."""
+        detail_count = max(
+            (1 if isinstance(details, str) else len(tuple(details)))
+            for _, _, details, _ in items)
+        item_height = (self.f_xx.get_height() + 2 + sprite_size + 1
+                       + detail_count * self.f_xx.get_height())
+        return y + self.f_xs_bold.get_height() + 2 + item_height + 5
+
+    def _draw_bonus_guide(self, heading, combo, region, y, color):
+        """Draw the combo rule in its own bordered bonus category."""
+        title = self.f_xs_bold.render(heading, True, color)
+        combo_text = self.f_xs_bold.render(combo, True, color)
+        title_x = region.centerx - title.get_width() // 2
+        combo_y = y + title.get_height() + 2
+        box_top = y + title.get_height() // 2
+        box = pygame.Rect(region.x, box_top, region.width,
+                          combo_y + combo_text.get_height() + 5 - box_top)
+        pygame.draw.rect(self.scr, color, box, 1, border_radius=7)
+        legend_bg = pygame.Rect(title_x - 7, y, title.get_width() + 14,
+                                title.get_height())
+        pygame.draw.rect(self.scr, C_BG, legend_bg)
+        self.scr.blit(title, (title_x, y))
+        self.scr.blit(combo_text,
+                      (region.centerx - combo_text.get_width() // 2, combo_y))
+        return box.bottom
+
+    def _keymap_font(self, size):
+        """Cache the responsive bold fonts used by the keymap guide."""
+        if size not in self._keymap_fonts:
+            self._keymap_fonts[size] = pygame.font.SysFont(
+                "monospace", size, bold=True)
+        return self._keymap_fonts[size]
+
+    def _keymap_layout(self, y):
+        """Choose the largest keymap typography that fits above the footer."""
+        footer_y = self.screen_height - self.f_xx.get_height() - 12
+        band_height = max(0, footer_y - y)
+        selected = None
+        for grid_size in range(34, 7, -1):
+            heading_size = min(26, max(10, grid_size - 6))
+            heading_font = self._keymap_font(heading_size)
+            grid_font = self._keymap_font(grid_size)
+            heading_gap = max(2, min(8, grid_size // 5))
+            row_gap = max(2, min(8, grid_size // 5))
+            line_step = grid_font.get_height() + row_gap
+            content_height = (heading_font.get_height() + heading_gap
+                              + grid_font.get_height() + 2 * line_step)
+            if content_height + 8 <= band_height:
+                selected = {
+                    "heading_size": heading_size,
+                    "grid_size": grid_size,
+                    "heading_font": heading_font,
+                    "grid_font": grid_font,
+                    "heading_gap": heading_gap,
+                    "row_gap": row_gap,
+                    "line_step": line_step,
+                    "content_height": content_height,
+                }
+                break
+
+        if selected is None:
+            heading_font = self._keymap_font(8)
+            grid_font = self._keymap_font(8)
+            selected = {
+                "heading_size": 8,
+                "grid_size": 8,
+                "heading_font": heading_font,
+                "grid_font": grid_font,
+                "heading_gap": 2,
+                "row_gap": 2,
+                "line_step": grid_font.get_height() + 2,
+            }
+            selected["content_height"] = (
+                heading_font.get_height() + selected["heading_gap"]
+                + grid_font.get_height() + 2 * selected["line_step"])
+
+        selected["y"] = y + max(0, (band_height
+                                     - selected["content_height"]) // 2)
+        selected["footer_y"] = footer_y
+        return selected
+
+    def _draw_keymap_guide(self, y):
+        """Show a responsive spatial number-key mapping above the footer."""
+        label = self.config["ui_labels"]["guide"]["number_keys"]
+        layout = self._keymap_layout(y)
+        heading = layout["heading_font"].render(
+            label, True, (120, 130, 150))
+        self.scr.blit(heading,
+                      (self.screen_width // 2 - heading.get_width() // 2,
+                       layout["y"]))
+        grid_y = (layout["y"] + heading.get_height()
+                  + layout["heading_gap"])
+        lines = ("7   8   9", "4   5   6", "1   2   3")
+        for index, line in enumerate(lines):
+            text = layout["grid_font"].render(
+                line, True, (120, 130, 150))
+            self.scr.blit(text,
+                          (self.screen_width // 2 - text.get_width() // 2,
+                           grid_y + index * layout["line_step"]))
 
     def _draw_points_guide(self, y):
         """Draw the illustrated guide for the currently selected mode."""
@@ -2060,15 +2181,15 @@ class Game:
                     "phishing", "PHISHING EMAIL")),
              f"+{SCORE_HIT_PHISHING} PT", (220, 140, 50)),
             ("boss", self.config["enemies"]["boss"],
-             (f"+{SCORE_HIT_BOSS} PT", labels["boss_hits"].format(
-                 hits=BOSS_HITS_REQUIRED)), (255, 100, 0)),
+             f"+{SCORE_HIT_BOSS} PT · " + labels["boss_hits"].format(
+                 hits=BOSS_HITS_REQUIRED), (255, 100, 0)),
         ]
         hit_y = y + heading.get_height() + 2
         enemy_bottom = self._draw_guide_group(
             labels["hit"], enemy_items, guide_region, hit_y,
             C_WARNING, target_size)
 
-        lower_y = enemy_bottom + 3
+        lower_y = enemy_bottom + 5
         combo = labels["combo_bonus"].format(
             threshold=COMBO_THRESHOLD, bonus=COMBO_BONUS)
         if self.selected_mode == "quick":
@@ -2076,10 +2197,14 @@ class Game:
             self.scr.blit(rule,
                           (self.screen_width // 2 - rule.get_width() // 2,
                            lower_y))
-            combo_text = self.f_xs_bold.render(combo, True, C_TEXT)
-            self.scr.blit(combo_text,
-                          (self.screen_width // 2 - combo_text.get_width() // 2,
-                           lower_y + 42))
+            bonus_width = min(520, int(guide_width * 0.52))
+            bonus_region = pygame.Rect(
+                self.screen_width // 2 - bonus_width // 2, 0,
+                bonus_width, 0)
+            bonus_bottom = self._draw_bonus_guide(
+                labels["bonus_points"], combo, bonus_region,
+                lower_y + rule.get_height() + 4, C_TEXT)
+            self._draw_keymap_guide(bonus_bottom)
             return
 
         gap = max(24, int(guide_width * 0.025))
@@ -2107,17 +2232,22 @@ class Game:
         ]
         powerup_items = [(key, label, (), C_COMBO)
                          for key, label in powerup_items]
+        shared_bottom = self._guide_group_bottom(
+            friendly_items, lower_y, lower_size)
         protect_bottom = self._draw_guide_group(
             labels["protect"], friendly_items, protect_region, lower_y,
-            C_HOLE_BORDER, lower_size)
+            C_HOLE_BORDER, lower_size, shared_bottom)
         collect_bottom = self._draw_guide_group(
             labels["collect"], powerup_items, collect_region, lower_y,
-            C_COMBO, lower_size)
-        combo_text = self.f_xs_bold.render(combo, True, C_TEXT)
-        combo_y = max(protect_bottom, collect_bottom)
-        self.scr.blit(combo_text,
-                      (self.screen_width // 2 - combo_text.get_width() // 2,
-                       combo_y))
+            C_COMBO, lower_size, shared_bottom, center_content=True)
+        bonus_width = min(520, int(guide_width * 0.52))
+        bonus_region = pygame.Rect(
+            self.screen_width // 2 - bonus_width // 2, 0,
+            bonus_width, 0)
+        bonus_bottom = self._draw_bonus_guide(
+            labels["bonus_points"], combo, bonus_region,
+            max(protect_bottom, collect_bottom) + 5, C_TEXT)
+        self._draw_keymap_guide(bonus_bottom)
 
     def _draw_menu(self):
         self.scr.fill(C_BG)
@@ -2128,7 +2258,7 @@ class Game:
 
         title_font = pygame.font.SysFont("monospace", 64, bold=True)
         t = title_font.render(self.config["theme"]["title"], True, tc)
-        y = 25
+        y = 5
         self.scr.blit(t, (self.screen_width // 2 - t.get_width() // 2, y))
 
         subtitle_font = pygame.font.SysFont("monospace", 36, bold=True)
@@ -2137,7 +2267,7 @@ class Game:
         y += 65
         self.scr.blit(t2, (self.screen_width // 2 - t2.get_width() // 2, y))
 
-        y += 62
+        y += 49
         select = self.f_sm.render(
             self.config["ui_labels"]["modes"]["select"], True,
             (180, 180, 200))
@@ -2162,7 +2292,7 @@ class Game:
                           (box.x + 70, box.y + 48))
             y += 78
 
-        self._draw_points_guide(y + 10)
+        self._draw_points_guide(y + 4)
 
         controls = [
             ("ENTER / GREEN — START SELECTED MODE", C_TEXT),

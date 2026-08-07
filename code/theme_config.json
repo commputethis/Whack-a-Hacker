@@ -67,6 +67,8 @@
       "hit": "HIT",
       "protect": "PROTECT",
       "collect": "COLLECT",
+      "bonus_points": "BONUS POINTS",
+      "number_keys": "NUMBER KEYS 1-9 TO WHACK",
       "hit_everything": "HIT EVERYTHING!",
       "boss_hits": "{hits} HITS",
       "combo_bonus": "COMBO {threshold}+  +{bonus} PT"
