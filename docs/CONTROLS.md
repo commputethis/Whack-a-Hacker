@@ -8,10 +8,12 @@
 | --- | ------ |
 | **Numpad 1-9** or **Number keys 1-9** | Whack corresponding hole |
 | **Mouse Click** | Whack hole directly with hammer cursor |
-| **Enter / Numpad Enter** | Start game / Play again / Confirm name |
-| **L** | View leaderboard |
+| **Up / Down (on menu)** | Move between Quick Play and Cyber Challenge |
+| **1 / 2 (on menu)** | Select Quick Play / Cyber Challenge |
+| **Enter / Numpad Enter / Green** | Start selected or displayed mode / Play again / Confirm name |
+| **L / Yellow** | Open leaderboard; switch leaderboard mode while viewing it |
 | **M** | Return to menu |
-| **ESC** | Quit game / Return to menu |
+| **ESC / Red** | Quit game / Return to menu |
 | **Ctrl+Shift+C** | Reset leaderboard |
 
 ### Hole Layout
@@ -47,8 +49,10 @@ Build a physical arcade button box for enhanced gameplay.
 | 2 | GPIO 8 | Numpad 2 |
 | 3 | GPIO 9 | Numpad 3 |
 | Enter | GPIO 10 | Start/Confirm |
-| Leaderboard | GPIO 11 | L key |
+| Leaderboard (Yellow) | GPIO 11 | L key |
 | Menu/Quit | GPIO 12 | Escape |
+
+The Yellow arcade button sends `L`; Yellow and `L` are the same contextual input.
 
 ### Arduino Code
 

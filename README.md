@@ -8,6 +8,7 @@ A fast-paced, cyber security themed whack-a-mole game built with Python and Pyga
   - [Quick Start](#quick-start)
   - [Features](#features)
   - [Documentation](#documentation)
+  - [Game Modes](#game-modes)
   - [Game Mechanics](#game-mechanics)
     - [Scoring](#scoring)
       - [Enemy Points](#enemy-points)
@@ -30,6 +31,7 @@ python3 main.py
 ## Features
 
 - Diverse Enemy Types: Regular hackers, APT threats, social engineers, powerful boss hackers, and phishing emails
+- Two Game Modes: Welcoming Quick Play and the full Cyber Challenge experience
 - Power-Ups: Freeze time, double points, add time to the clock, and slow motion
 - Boss Battles: Boss hackers appear every ~30 seconds and require 3 hits to defeat
 - Combo System: Chain consecutive hits for bonus points starting at 3 hits in a row
@@ -45,6 +47,18 @@ python3 main.py
 - [Customization](./docs/CUSTOMIZATION.md) — Themes, custom sprites, and configuration
 - [Troubleshooting](./docs/TROUBLESHOOTING.md) — Common issues and solutions
 - [Building from Source](./docs/BUILD.md) — Build your own AppImage and development tools
+
+## Game Modes
+
+- **Quick Play — Hit everything!** Includes every threat type, bosses, combos,
+  and normal difficulty progression. Friendlies and power-ups do not spawn.
+- **Cyber Challenge — Stop threats. Protect friendlies. Collect power-ups.**
+  Preserves the full game with friendly penalties, power-ups, detailed feedback,
+  and a Clean Run when no friendlies are hit.
+
+On the menu, use **Up/Down** or press **1** for Quick Play and **2** for Cyber
+Challenge, then press **Enter / Green** to start. Selecting a mode does not start
+it immediately. The illustrated Points Guide updates with the selected mode.
 
 ## Game Mechanics
 
@@ -90,7 +104,9 @@ python3 main.py
 
 ## Leaderboard
 
-High scores are saved to `~/.local/share/whack-a-hacker/leaderboard.json` on your system. The leaderboard tracks:
+High scores are saved to `~/.local/share/whack-a-hacker/leaderboard.json` on your
+system. Quick Play and Cyber Challenge have separate score-ranked views because
+their scores are not directly comparable. Each entry tracks:
 
 - Player name
 - Score (the primary ranking metric)
@@ -99,11 +115,20 @@ High scores are saved to `~/.local/share/whack-a-hacker/leaderboard.json` on you
 - Friendlies hit
 - Date of achievement
 
+Press **L / Yellow** on the menu to open the selected mode's leaderboard. On a
+leaderboard, the same **L / Yellow** input switches modes, **Enter / Green** starts
+the displayed mode, and **Escape / Red** returns to the menu. Yellow is not a
+separate input: the arcade button sends the letter `L`.
+
+Leaderboard records created before modes were introduced are treated as Cyber
+Challenge scores. New entries record their mode, while legacy files remain usable
+without migration.
+
 Accuracy is no longer recorded or displayed. The Game Over screen instead gives
 detailed performance feedback, including hackers whacked and missed, friendlies
 hit, threats stopped, bosses defeated, power-ups collected, and maximum combo.
-A **Clean Run** is awarded when no friendlies are hit; it is a visual achievement
-only and does not affect score or leaderboard ranking.
+A **Clean Run** is awarded only in Cyber Challenge when no friendlies are hit; it
+is a visual achievement only and does not affect score or leaderboard ranking.
 
 ## License
 

@@ -51,6 +51,26 @@
     "speed_up": "SPEED UP!"
   },
   "ui_labels": {
+    "modes": {
+      "select": "SELECT MODE",
+      "quick": "Quick Play",
+      "quick_instruction": "Hit everything!",
+      "challenge": "Cyber Challenge",
+      "challenge_instruction": "Stop threats. Protect friendlies. Collect power-ups.",
+      "quick_leaderboard": "QUICK PLAY LEADERBOARD",
+      "challenge_leaderboard": "CYBER CHALLENGE LEADERBOARD",
+      "threats_hit": "Threats Hit",
+      "threats_missed": "Threats Missed"
+    },
+    "guide": {
+      "title": "POINTS GUIDE",
+      "hit": "HIT",
+      "protect": "PROTECT",
+      "collect": "COLLECT",
+      "hit_everything": "HIT EVERYTHING!",
+      "boss_hits": "{hits} HITS",
+      "combo_bonus": "COMBO {threshold}+  +{bonus} PT"
+    },
     "stats": {
       "hits": "Hackers Whacked",
       "missed": "Hackers Missed",

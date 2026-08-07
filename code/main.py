@@ -149,6 +149,23 @@ NUMBER_MAP = {
 
 MAX_LEADERBOARD = 20
 
+GAME_MODES = {
+    "quick": {
+        "label": "Quick Play",
+        "instruction": "Hit everything!",
+        "friendlies_enabled": False,
+        "powerups_enabled": False,
+        "clean_run_enabled": False,
+    },
+    "challenge": {
+        "label": "Cyber Challenge",
+        "instruction": "Stop threats. Protect friendlies. Collect power-ups.",
+        "friendlies_enabled": True,
+        "powerups_enabled": True,
+        "clean_run_enabled": True,
+    },
+}
+
 
 # ===========================================================================
 # PROCEDURAL SOUND GENERATOR
@@ -857,22 +874,42 @@ class Leaderboard:
         except IOError:
             pass
 
-    def add(self, name, score, combo, bosses, friendlies_hit):
+    @staticmethod
+    def _mode(entry):
+        mode = entry.get("mode", "challenge")
+        return mode if mode in GAME_MODES else "challenge"
+
+    @staticmethod
+    def _number(entry, field):
+        try:
+            return int(entry.get(field, 0))
+        except (TypeError, ValueError):
+            return 0
+
+    def entries_for(self, mode):
+        entries = [e for e in self.entries if self._mode(e) == mode]
+        return sorted(entries, key=lambda e: self._number(e, "score"),
+                      reverse=True)[:MAX_LEADERBOARD]
+
+    def add(self, name, score, combo, bosses, friendlies_hit, mode):
         self.entries.append({
             "name": name, "score": score, "combo": combo,
             "bosses": bosses, "friendlies_hit": friendlies_hit,
+            "mode": mode,
             "date": time.strftime("%Y-%m-%d %H:%M")})
-        self.entries.sort(key=lambda e: e.get("score", 0), reverse=True)
-        self.entries = self.entries[:MAX_LEADERBOARD]
+        keep = self.entries_for(mode)
+        self.entries = [e for e in self.entries
+                        if self._mode(e) != mode] + keep
         self._save()
 
     def reset(self):
         self.entries = []
         self._save()
 
-    def qualifies(self, score):
-        return (len(self.entries) < MAX_LEADERBOARD or
-                score > self.entries[-1].get("score", 0))
+    def qualifies(self, score, mode):
+        entries = self.entries_for(mode)
+        return (len(entries) < MAX_LEADERBOARD or
+                score > self._number(entries[-1], "score"))
 
 
 # ===========================================================================
@@ -1134,7 +1171,9 @@ class Game:
         self.f_lg = pygame.font.SysFont("monospace", 48, bold=True)
         self.f_md = pygame.font.SysFont("monospace", 36, bold=True)
         self.f_sm = pygame.font.SysFont("monospace", 28)
+        self.f_sm_bold = pygame.font.SysFont("monospace", 28, bold=True)
         self.f_xs = pygame.font.SysFont("monospace", 20)
+        self.f_xs_bold = pygame.font.SysFont("monospace", 20, bold=True)
         self.f_xx = pygame.font.SysFont("monospace", 16)
 
         self.imgs = {}
@@ -1153,6 +1192,8 @@ class Game:
         self.ptcl = Particles(200)
         self.eff = Effects()
 
+        self.selected_mode = "quick"
+        self.leaderboard_mode = self.selected_mode
         self.state = "menu"
         self._reset()
         self.pname = ""
@@ -1221,6 +1262,26 @@ class Game:
                 "speed_up": "SPEED UP!"
             },
             "ui_labels": {
+                "modes": {
+                    "select": "SELECT MODE",
+                    "quick": "Quick Play",
+                    "quick_instruction": "Hit everything!",
+                    "challenge": "Cyber Challenge",
+                    "challenge_instruction": "Stop threats. Protect friendlies. Collect power-ups.",
+                    "quick_leaderboard": "QUICK PLAY LEADERBOARD",
+                    "challenge_leaderboard": "CYBER CHALLENGE LEADERBOARD",
+                    "threats_hit": "Threats Hit",
+                    "threats_missed": "Threats Missed"
+                },
+                "guide": {
+                    "title": "POINTS GUIDE",
+                    "hit": "HIT",
+                    "protect": "PROTECT",
+                    "collect": "COLLECT",
+                    "hit_everything": "HIT EVERYTHING!",
+                    "boss_hits": "{hits} HITS",
+                    "combo_bonus": "COMBO {threshold}+  +{bonus} PT"
+                },
                 "stats": {
                     "hits": "Hackers Whacked",
                     "missed": "Hackers Missed",
@@ -1279,6 +1340,19 @@ class Game:
                 self._update_config(target[key], value)
             else:
                 target[key] = value
+
+    def _mode_config(self):
+        return GAME_MODES[self.selected_mode]
+
+    def _mode_label(self, mode=None):
+        mode = mode or self.selected_mode
+        return self.config["ui_labels"]["modes"].get(
+            mode, GAME_MODES[mode]["label"])
+
+    def _mode_instruction(self, mode=None):
+        mode = mode or self.selected_mode
+        return self.config["ui_labels"]["modes"].get(
+            f"{mode}_instruction", GAME_MODES[mode]["instruction"])
 
     def _deep_merge(self, default, custom):
         """Deep merge two dictionaries"""
@@ -1450,6 +1524,7 @@ class Game:
         self.boss_up = False
         self.pu_t = random.uniform(POWERUP_INTERVAL_MIN, POWERUP_INTERVAL_MAX)
         self.pu_up = False
+        self.mode_intro_t = 2200
         self.last_tick_s = -1
         self.eff.clear()
         self.ptcl.ps = []
@@ -1490,8 +1565,11 @@ class Game:
         return int(base * mult * slow)
 
     def _choose_type(self):
-        types = list(SPAWN_WEIGHTS.keys())
-        weights = list(SPAWN_WEIGHTS.values())
+        allowed = (SPAWN_WEIGHTS if self._mode_config()["friendlies_enabled"]
+                   else {key: weight for key, weight in SPAWN_WEIGHTS.items()
+                         if key in self._ENEMIES})
+        types = list(allowed.keys())
+        weights = list(allowed.values())
         return random.choices(types, weights=weights, k=1)[0]
 
     _ENEMIES = {"hacker", "apt", "boss", "social_engineer", "phishing"}
@@ -1661,7 +1739,8 @@ class Game:
         if self.time_left <= 0:
             self.time_left = 0
             self._play("over")
-            self.state = "name" if self.lb.qualifies(self.score) else "over"
+            self.state = ("name" if self.lb.qualifies(
+                self.score, self.selected_mode) else "over")
             self.pname = ""
             return
 
@@ -1690,11 +1769,12 @@ class Game:
             self._spawn_boss()
             self.boss_t = BOSS_SPAWN_INTERVAL
 
-        self.pu_t -= dt
-        if self.pu_t <= 0 and not self.pu_up:
-            self._spawn_pu()
-            self.pu_t = random.uniform(POWERUP_INTERVAL_MIN,
-                                       POWERUP_INTERVAL_MAX)
+        if self._mode_config()["powerups_enabled"]:
+            self.pu_t -= dt
+            if self.pu_t <= 0 and not self.pu_up:
+                self._spawn_pu()
+                self.pu_t = random.uniform(POWERUP_INTERVAL_MIN,
+                                           POWERUP_INTERVAL_MAX)
 
         if not frozen:
             self.spawn_t -= dt * 1000
@@ -1720,6 +1800,7 @@ class Game:
         self.ptcl.update(dt)
         self.flashes = [[t, c, ms - dt * 1000]
                         for t, c, ms in self.flashes if ms - dt * 1000 > 0]
+        self.mode_intro_t = max(0, self.mode_intro_t - dt * 1000)
         
         # Hammer swing animation
         if self.hammer_timer > 0:
@@ -1816,6 +1897,10 @@ class Game:
     def _draw_hud(self):
         self.scr.blit(self.f_md.render(f"Score: {self.score}", True, C_SCORE),
                       (20, 12))
+        mode_text = self.f_xs.render(self._mode_label().upper(), True,
+                                     C_HOLE_BORDER)
+        self.scr.blit(mode_text,
+                      (self.screen_width // 2 - mode_text.get_width() // 2, 12))
         if self.combo >= 2:
             col = C_COMBO if self.combo >= COMBO_THRESHOLD else (200, 200, 200)
             self.scr.blit(
@@ -1862,6 +1947,13 @@ class Game:
             self.scr.blit(ft, (self.screen_width // 2 - ft.get_width() // 2, fy))
             fy += 32
 
+        if self.mode_intro_t > 0:
+            instruction = self.f_sm.render(
+                self._mode_instruction().upper(), True, C_COMBO)
+            self.scr.blit(instruction,
+                          (self.screen_width // 2 - instruction.get_width() // 2,
+                           62))
+
         # footer
         self.scr.blit(
             self.f_xs.render("Numpad 1-9: Whack  |  ESC/Red Button: Menu", True,
@@ -1902,6 +1994,131 @@ class Game:
             self.scr.blit(img, (self.hammer_pos[0] - 10,
                                 self.hammer_pos[1] - 10))
 
+    def _draw_guide_item(self, key, label, details, center_x, y,
+                         color=C_TEXT, size=56):
+        """Draw a centered label, pixel-art sprite, and detail lines."""
+        name = self.f_xx.render(label, True, color)
+        self.scr.blit(name, (center_x - name.get_width() // 2, y))
+        sprite_y = y + name.get_height() + 2
+        images = self.imgs.get(key, [])
+        if images:
+            sprite = pygame.transform.scale(images[0], (size, size))
+            self.scr.blit(sprite, (center_x - size // 2, sprite_y))
+        detail_lines = ((details,) if isinstance(details, str)
+                        else tuple(details))
+        detail_y = sprite_y + size + 1
+        for detail in detail_lines:
+            value = self.f_xx.render(detail, True, (190, 195, 210))
+            self.scr.blit(value,
+                          (center_x - value.get_width() // 2, detail_y))
+            detail_y += value.get_height()
+        return detail_y
+
+    def _draw_guide_row(self, items, region, y, sprite_size):
+        """Evenly distribute guide items across a bounded region."""
+        column_width = region.width / len(items)
+        bottom = y
+        for index, (key, label, details, color) in enumerate(items):
+            center_x = int(region.x + column_width * (index + 0.5))
+            bottom = max(bottom, self._draw_guide_item(
+                key, label, details, center_x, y, color, sprite_size))
+        return bottom
+
+    def _draw_guide_group(self, heading, items, region, y, color,
+                          sprite_size):
+        """Center a section heading over its related row of items."""
+        title = self.f_xs_bold.render(heading, True, color)
+        self.scr.blit(title,
+                      (region.centerx - title.get_width() // 2, y))
+        return self._draw_guide_row(
+            items, region, y + title.get_height() + 2, sprite_size)
+
+    def _draw_points_guide(self, y):
+        """Draw the illustrated guide for the currently selected mode."""
+        labels = self.config["ui_labels"]["guide"]
+        heading = self.f_sm_bold.render(
+            labels["title"], True, (180, 180, 200))
+        self.scr.blit(heading,
+                      (self.screen_width // 2 - heading.get_width() // 2, y))
+
+        guide_width = max(960, min(1120, int(self.screen_width * 0.80)))
+        guide_width = min(guide_width, self.screen_width - 40)
+        guide_region = pygame.Rect(
+            (self.screen_width - guide_width) // 2, 0, guide_width, 0)
+        target_size = max(56, min(68, int(self.screen_width * 0.045)))
+        lower_size = max(40, min(54, int(self.screen_height * 0.056)))
+
+        enemy_items = [
+            ("hacker", self.config["enemies"]["hacker"],
+             f"+{SCORE_HIT_HACKER} PT", (220, 60, 60)),
+            ("apt", self.config["enemies"]["apt"],
+             f"+{SCORE_HIT_APT} PT", (190, 80, 210)),
+            ("social_engineer", self.config["enemies"]["social_engineer"],
+             f"+{SCORE_HIT_SOCIAL_ENGINEER} PT", (80, 200, 150)),
+            ("phishing", self.config["enemies"].get(
+                "phishing", self.config["friendlies"].get(
+                    "phishing", "PHISHING EMAIL")),
+             f"+{SCORE_HIT_PHISHING} PT", (220, 140, 50)),
+            ("boss", self.config["enemies"]["boss"],
+             (f"+{SCORE_HIT_BOSS} PT", labels["boss_hits"].format(
+                 hits=BOSS_HITS_REQUIRED)), (255, 100, 0)),
+        ]
+        hit_y = y + heading.get_height() + 2
+        enemy_bottom = self._draw_guide_group(
+            labels["hit"], enemy_items, guide_region, hit_y,
+            C_WARNING, target_size)
+
+        lower_y = enemy_bottom + 3
+        combo = labels["combo_bonus"].format(
+            threshold=COMBO_THRESHOLD, bonus=COMBO_BONUS)
+        if self.selected_mode == "quick":
+            rule = self.f_md.render(labels["hit_everything"], True, C_COMBO)
+            self.scr.blit(rule,
+                          (self.screen_width // 2 - rule.get_width() // 2,
+                           lower_y))
+            combo_text = self.f_xs_bold.render(combo, True, C_TEXT)
+            self.scr.blit(combo_text,
+                          (self.screen_width // 2 - combo_text.get_width() // 2,
+                           lower_y + 42))
+            return
+
+        gap = max(24, int(guide_width * 0.025))
+        protect_width = int((guide_width - gap) * 0.42)
+        protect_region = pygame.Rect(
+            guide_region.x, 0, protect_width, 0)
+        collect_region = pygame.Rect(
+            protect_region.right + gap, 0,
+            guide_region.right - protect_region.right - gap, 0)
+        friendly_items = [
+            ("shield", self.config["friendlies"]["shield"]),
+            ("it_admin", self.config["friendlies"]["it_admin"]),
+            ("lock", self.config["friendlies"]["lock"]),
+        ]
+        friendly_items = [
+            (key, label, f"{SCORE_HIT_FRIENDLY} PT", C_HOLE_BORDER)
+            for key, label in friendly_items
+        ]
+
+        powerup_items = [
+            ("pu_freeze", self.config["powerups"]["freeze"]),
+            ("pu_double", self.config["powerups"]["double"]),
+            ("pu_time_bonus", self.config["powerups"]["time_bonus"]),
+            ("pu_slow_mo", self.config["powerups"]["slow_mo"]),
+        ]
+        powerup_items = [(key, label, (), C_COMBO)
+                         for key, label in powerup_items]
+        protect_bottom = self._draw_guide_group(
+            labels["protect"], friendly_items, protect_region, lower_y,
+            C_HOLE_BORDER, lower_size)
+        collect_bottom = self._draw_guide_group(
+            labels["collect"], powerup_items, collect_region, lower_y,
+            C_COMBO, lower_size)
+        combo_text = self.f_xs_bold.render(combo, True, C_TEXT)
+        combo_y = max(protect_bottom, collect_bottom)
+        self.scr.blit(combo_text,
+                      (self.screen_width // 2 - combo_text.get_width() // 2,
+                       combo_y))
+
     def _draw_menu(self):
         self.scr.fill(C_BG)
         self.title_p += 0.05
@@ -1911,83 +2128,54 @@ class Game:
 
         title_font = pygame.font.SysFont("monospace", 64, bold=True)
         t = title_font.render(self.config["theme"]["title"], True, tc)
-        y = 40
+        y = 25
         self.scr.blit(t, (self.screen_width // 2 - t.get_width() // 2, y))
 
         subtitle_font = pygame.font.SysFont("monospace", 36, bold=True)
         t2 = subtitle_font.render(self.config["theme"]["subtitle"], True,
                                 (100, 220, 150))
-        y += 68
+        y += 65
         self.scr.blit(t2, (self.screen_width // 2 - t2.get_width() // 2, y))
 
-        opts = [
-            (self.config["ui_labels"]["buttons"]["start"], C_TEXT),
-            (self.config["ui_labels"]["buttons"]["leaderboard"], (255, 215, 0)),
-            (self.config["ui_labels"]["buttons"]["quit"], (220, 60, 60)),
+        y += 62
+        select = self.f_sm.render(
+            self.config["ui_labels"]["modes"]["select"], True,
+            (180, 180, 200))
+        self.scr.blit(select,
+                      (self.screen_width // 2 - select.get_width() // 2, y))
+        y += 35
+
+        for key, number in (("quick", "1"), ("challenge", "2")):
+            selected = key == self.selected_mode
+            box = pygame.Rect(self.screen_width // 2 - 410, y, 820, 72)
+            pygame.draw.rect(self.scr, (28, 45, 58) if selected else (25, 25, 45),
+                             box, border_radius=10)
+            pygame.draw.rect(self.scr, C_COMBO if selected else (70, 90, 110),
+                             box, 3 if selected else 1, border_radius=10)
+            marker = ">" if selected else " "
+            label = f"{marker} {number} — {self._mode_label(key).upper()}"
+            self.scr.blit(self.f_md.render(label, True,
+                                           C_COMBO if selected else C_TEXT),
+                          (box.x + 22, box.y + 6))
+            self.scr.blit(self.f_xs.render(self._mode_instruction(key), True,
+                                           (180, 190, 205)),
+                          (box.x + 70, box.y + 48))
+            y += 78
+
+        self._draw_points_guide(y + 10)
+
+        controls = [
+            ("ENTER / GREEN — START SELECTED MODE", C_TEXT),
+            ("L / YELLOW — LEADERBOARD", C_COMBO),
+            ("ESC / RED — QUIT", C_WARNING),
         ]
-        y += 80
-        for txt, col in opts:
-            r = subtitle_font.render(txt, True, col)
-            self.scr.blit(r, (self.screen_width // 2 - r.get_width() // 2, y))
-            y += 40
-
-        y += 40
-        self.scr.blit(subtitle_font.render("========= POINTS GUIDE =========", True,
-                                            (180, 180, 200)),
-                        (self.screen_width // 2 - 350, y))
-        y += 45
-
-        SPR = 44   # sprite render size in pixels
-        LINE = 50  # row height
-        GAP = 14   # gap between sprites and text
-
-        guide = [
-            (["hacker"], f"{self.config['enemies']['hacker']} — {self.config['descriptions']['hacker']}", (220, 60, 60)),
-            (["apt"], f"{self.config['enemies']['apt']} — {self.config['descriptions']['apt']}", (180, 50, 180)),
-            (["boss"], f"{self.config['enemies']['boss']} — {self.config['descriptions']['boss']}", (255, 100, 0)),
-            (["social_engineer"], f"{self.config['enemies']['social_engineer']} — {self.config['descriptions']['social_engineer']}", (80, 200, 150)),
-            (["phishing"], f"{self.config['enemies']['phishing']} — {self.config['descriptions']['phishing']}", (220, 120, 40)),
-            (["shield", "it_admin", "lock"], f"{self.config['friendlies']['shield']}/{self.config['friendlies']['it_admin']}/{self.config['friendlies']['lock']} — {self.config['descriptions']['shield']}", (50, 150, 255)),
-            (["pu_freeze", "pu_double", "pu_time_bonus", "pu_slow_mo"], f"POWER-UPS — COLLECT!", (255, 215, 0)),
-        ]
-
-        for sprite_keys, txt, col in guide:
-            sprites = []
-            for key in sprite_keys:
-                imgs = self.imgs.get(key, [])
-                if imgs:
-                    sprites.append(
-                        pygame.transform.smoothscale(imgs[0], (SPR, SPR)))
-
-            r = self.f_md.render(txt, True, col)
-
-            sprites_w = len(sprites) * SPR + max(0, len(sprites) - 1) * 4
-            total_w = sprites_w + GAP + r.get_width()
-            sx = self.screen_width // 2 - total_w // 2
-
-            for i, spr in enumerate(sprites):
-                self.scr.blit(spr, (sx + i * (SPR + 4),
-                                    y + (LINE - SPR) // 2))
-
-            self.scr.blit(r, (sx + sprites_w + GAP,
-                            y + (LINE - r.get_height()) // 2))
-            y += LINE
-        
-        c = subtitle_font.render("3+ COMBOS — BONUS POINTS! +1 pt", True,
-                                           (100, 255, 200))
-        self.scr.blit(c, (self.screen_width // 2 - c.get_width() // 2, y))
-        y += c.get_height()
-
-        y += 20
-        for line in [
-            "Numpad 1-9 (or regular number keys) to whack:  ",
-            "7  8  9    60 seconds  |  Combos at 3+ streak   ",
-            "4  5  6    Boss every ~20s  |  Power-ups appear ",
-            "1  2  3    Watch for disguised spies & phishing!",
-        ]:
-            r = self.f_md.render(line, True, (120, 120, 140))
-            self.scr.blit(r, (self.screen_width // 2 - r.get_width() // 2, y))
-            y += 30
+        footer_y = self.screen_height - self.f_xx.get_height() - 12
+        column_width = self.screen_width / len(controls)
+        for index, (text_value, color) in enumerate(controls):
+            rendered = self.f_xx.render(text_value, True, color)
+            center_x = int(column_width * (index + 0.5))
+            self.scr.blit(rendered,
+                          (center_x - rendered.get_width() // 2, footer_y))
 
     def _draw_quit_confirm(self):
         """Draw quit confirmation dialog over the menu"""
@@ -2025,26 +2213,37 @@ class Game:
         self.scr.fill(C_BG)
         t = self.f_lg.render(self.config["theme"]["game_over_title"], True, C_WARNING)
         self.scr.blit(t, (self.screen_width // 2 - t.get_width() // 2, 30))
+        mode = self.f_sm.render(self._mode_label().upper(), True, C_HOLE_BORDER)
+        self.scr.blit(mode, (self.screen_width // 2 - mode.get_width() // 2, 82))
         t2 = self.f_lg.render(f"{self.config['theme']['score_label']}: {self.score}", True, C_TEXT)
-        self.scr.blit(t2, (self.screen_width // 2 - t2.get_width() // 2, 90))
+        self.scr.blit(t2, (self.screen_width // 2 - t2.get_width() // 2, 115))
 
-        stats = [
-            f"{self.config['ui_labels']['stats']['hits']}: {self.hits}",
-            f"{self.config['ui_labels']['stats']['missed']}: {self.missed}",
-            f"{self.config['ui_labels']['stats']['f_hits']}: {self.f_hits}",
-            f"{self.config['ui_labels']['stats']['ph_hits']}: {self.ph_hits}",
-            f"{self.config['ui_labels']['stats']['se_hits']}: {self.se_hits}",
-            f"{self.config['ui_labels']['stats']['bosses_k']}: {self.bosses_k}",
-            f"{self.config['ui_labels']['stats']['pu_got']}: {self.pu_got}",
-            f"{self.config['ui_labels']['stats']['max_combo']}: {self.max_combo}x",
-        ]
-        y = 160
+        if self.selected_mode == "quick":
+            mode_labels = self.config["ui_labels"]["modes"]
+            stats = [
+                f"{mode_labels['threats_hit']}: {self.hits}",
+                f"{mode_labels['threats_missed']}: {self.missed}",
+                f"{self.config['ui_labels']['stats']['bosses_k']}: {self.bosses_k}",
+                f"{self.config['ui_labels']['stats']['max_combo']}: {self.max_combo}x",
+            ]
+        else:
+            stats = [
+                f"{self.config['ui_labels']['stats']['hits']}: {self.hits}",
+                f"{self.config['ui_labels']['stats']['missed']}: {self.missed}",
+                f"{self.config['ui_labels']['stats']['f_hits']}: {self.f_hits}",
+                f"{self.config['ui_labels']['stats']['ph_hits']}: {self.ph_hits}",
+                f"{self.config['ui_labels']['stats']['se_hits']}: {self.se_hits}",
+                f"{self.config['ui_labels']['stats']['bosses_k']}: {self.bosses_k}",
+                f"{self.config['ui_labels']['stats']['pu_got']}: {self.pu_got}",
+                f"{self.config['ui_labels']['stats']['max_combo']}: {self.max_combo}x",
+            ]
+        y = 175
         for s in stats:
             r = self.f_md.render(s, True, (180, 180, 200))
             self.scr.blit(r, (self.screen_width // 2 - r.get_width() // 2, y))
             y += 35
 
-        if self.f_hits == 0:
+        if (self._mode_config()["clean_run_enabled"] and self.f_hits == 0):
             r = self.f_md.render("CLEAN RUN", True, C_COMBO)
             self.scr.blit(r, (self.screen_width // 2 - r.get_width() // 2, y))
             y += 35
@@ -2063,35 +2262,45 @@ class Game:
         self.scr.blit(t, (self.screen_width // 2 - t.get_width() // 2, 60))
         t2 = self.f_lg.render(f"{self.config['theme']['score_label']}: {self.score}", True, C_TEXT)
         self.scr.blit(t2, (self.screen_width // 2 - t2.get_width() // 2, 130))
+        mode = self.f_sm.render(self._mode_label().upper(), True, C_HOLE_BORDER)
+        self.scr.blit(mode, (self.screen_width // 2 - mode.get_width() // 2, 190))
         self.scr.blit(
             self.f_md.render(self.config["ui_labels"]["buttons"]["enter_name"], True, (200, 200, 220)),
-            (self.screen_width // 2 - 200, 220))
+            (self.screen_width // 2 - 200, 230))
 
         self.cur_blink += 0.08
         cur = "|" if math.sin(self.cur_blink) > 0 else " "
-        bg = pygame.Rect(self.screen_width // 2 - 200, 270, 400, 60)
+        bg = pygame.Rect(self.screen_width // 2 - 200, 280, 400, 60)
         pygame.draw.rect(self.scr, (30, 30, 50), bg, border_radius=8)
         pygame.draw.rect(self.scr, C_HOLE_BORDER, bg, 2, border_radius=8)
         nt = self.f_lg.render(self.pname + cur, True, C_SCORE)
-        self.scr.blit(nt, (self.screen_width // 2 - nt.get_width() // 2, 278))
+        self.scr.blit(nt, (self.screen_width // 2 - nt.get_width() // 2, 288))
         self.scr.blit(
             self.f_sm.render(self.config["ui_labels"]["buttons"]["confirm_name"], True,
                             (130, 130, 150)),
-            (self.screen_width // 2 - 280, 350))
+            (self.screen_width // 2 - 280, 360))
 
     def _draw_lb(self):
         self.scr.fill(C_BG)
-        t = self.f_lg.render("LEADERBOARD", True, C_TEXT)
+        modes = self.config["ui_labels"]["modes"]
+        title = modes[f"{self.leaderboard_mode}_leaderboard"]
+        t = self.f_lg.render(title, True, C_TEXT)
         self.scr.blit(t, (self.screen_width // 2 - t.get_width() // 2, 30))
 
-        if not self.lb.entries:
+        entries = self.lb.entries_for(self.leaderboard_mode)
+        if not entries:
             r = self.f_md.render("No scores yet!", True, (150, 150, 170))
             self.scr.blit(r, (self.screen_width // 2 - r.get_width() // 2, 140))
         else:
             # Use a compact font so every competitive metric remains readable.
-            row_format = "{:<5}{:<20}{:>10}{:>12}{:>9}{:>15}  {:<16}"
-            hdr = row_format.format("Rank", "Name", "Score", "Max Combo",
-                                    "Bosses", "Friendly Hits", "Date")
+            if self.leaderboard_mode == "quick":
+                row_format = "{:<5}{:<22}{:>11}{:>13}{:>10}  {:<16}"
+                hdr = row_format.format("Rank", "Name", "Score", "Max Combo",
+                                        "Bosses", "Date")
+            else:
+                row_format = "{:<5}{:<20}{:>10}{:>12}{:>9}{:>15}  {:<16}"
+                hdr = row_format.format("Rank", "Name", "Score", "Max Combo",
+                                        "Bosses", "Friendly Hits", "Date")
             row_height = min(30, max(18, (self.screen_height - 350) //
                                          MAX_LEADERBOARD))
             table_font = self.f_xs if row_height >= 24 else self.f_xx
@@ -2104,24 +2313,31 @@ class Game:
             pygame.draw.line(self.scr, C_HOLE_BORDER, (start_x, y),
                             (start_x + total_width, y))
             y += 5
-            for i, e in enumerate(self.lb.entries):
+            for i, e in enumerate(entries):
                 col = C_COMBO if i == 0 else (200, 200, 220)
-                line = row_format.format(
-                    i + 1, str(e.get("name", "???"))[:19],
-                    e.get("score", 0), e.get("combo", 0),
-                    e.get("bosses", 0), e.get("friendlies_hit", 0),
-                    str(e.get("date", ""))[:16])
+                values = [i + 1, str(e.get("name", "???"))[:19],
+                          self.lb._number(e, "score"),
+                          self.lb._number(e, "combo"),
+                          self.lb._number(e, "bosses")]
+                if self.leaderboard_mode == "challenge":
+                    values.append(self.lb._number(e, "friendlies_hit"))
+                values.append(str(e.get("date", ""))[:16])
+                line = row_format.format(*values)
                 self.scr.blit(table_font.render(line, True, col), (start_x, y))
                 y += row_height
 
-        y = self.screen_height - 200
-        self.scr.blit(
-            self.f_md.render("ESC, M, or Red Button for Menu", True, (220, 60, 60)),
-            (self.screen_width // 2 - 300, y))
-        self.scr.blit(
-            self.f_md.render(self.config["ui_labels"]["buttons"]["start"], True,
-                            C_TEXT),
-            (self.screen_width // 2 - 375, y + 40))
+        other_mode = "challenge" if self.leaderboard_mode == "quick" else "quick"
+        y = self.screen_height - 105
+        controls = [
+            (f"L / YELLOW — {modes[f'{other_mode}_leaderboard']}", C_COMBO),
+            (f"ENTER / GREEN — PLAY {self._mode_label(self.leaderboard_mode).upper()}", C_TEXT),
+            ("ESC / RED — MAIN MENU", C_WARNING),
+        ]
+        for text_value, color in controls:
+            rendered = self.f_xs.render(text_value, True, color)
+            self.scr.blit(rendered,
+                          (self.screen_width // 2 - rendered.get_width() // 2, y))
+            y += 27
     
     def _make_window_icon(self):
         # Try loading external icon first
@@ -2159,6 +2375,32 @@ class Game:
 
     # ---- main loop --------------------------------------------------------
 
+    def _select_menu_mode(self, key):
+        """Handle menu-only selection keys without starting a game."""
+        if key == pygame.K_UP:
+            if self.selected_mode == "challenge":
+                self.selected_mode = "quick"
+            return True
+        if key == pygame.K_DOWN:
+            if self.selected_mode == "quick":
+                self.selected_mode = "challenge"
+            return True
+        if key in (pygame.K_1, pygame.K_KP1):
+            self.selected_mode = "quick"
+            return True
+        if key in (pygame.K_2, pygame.K_KP2):
+            self.selected_mode = "challenge"
+            return True
+        return False
+
+    def _start_mode(self, mode=None):
+        if mode is not None:
+            self.selected_mode = mode
+        self.leaderboard_mode = self.selected_mode
+        self._reset()
+        self.state = "play"
+        self._play("start")
+
     def run(self):
         alive = True
         while alive:
@@ -2181,13 +2423,12 @@ class Game:
 
                     # ---- per-state input ----
                     if self.state == "menu":
-                        # Get current key states
-                        keys = pygame.key.get_pressed()
-                        if ev.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
-                            self._reset()
-                            self.state = "play"
-                            self._play("start")
+                        if self._select_menu_mode(ev.key):
+                            pass
+                        elif ev.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+                            self._start_mode()
                         elif ev.key == pygame.K_l:
+                            self.leaderboard_mode = self.selected_mode
                             self.state = "lb"
                         elif ev.key == pygame.K_ESCAPE:
                             self.state = "quit_confirm"
@@ -2209,10 +2450,9 @@ class Game:
 
                     elif self.state == "over":
                         if ev.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
-                            self._reset()
-                            self.state = "play"
-                            self._play("start")
+                            self._start_mode()
                         elif ev.key == pygame.K_l:
+                            self.leaderboard_mode = self.selected_mode
                             self.state = "lb"
                         elif ev.key in (pygame.K_m, pygame.K_ESCAPE):
                             self.state = "menu"
@@ -2221,8 +2461,10 @@ class Game:
                         if ev.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
                             nm = self.pname.strip() or "Anonymous"
                             self.lb.add(nm, self.score, self.max_combo,
-                                        self.bosses_k, self.f_hits)
-                            self.state = "over"
+                                        self.bosses_k, self.f_hits,
+                                        self.selected_mode)
+                            self.leaderboard_mode = self.selected_mode
+                            self.state = "lb"
                         elif ev.key == pygame.K_BACKSPACE:
                             self.pname = self.pname[:-1]
                         elif (len(self.pname) < 20
@@ -2232,10 +2474,13 @@ class Game:
 
                     elif self.state == "lb":
                         if ev.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
-                            self._reset()
-                            self.state = "play"
-                            self._play("start")
-                        if ev.key in (pygame.K_ESCAPE, pygame.K_m):
+                            self._start_mode(self.leaderboard_mode)
+                        elif ev.key == pygame.K_l:
+                            self.leaderboard_mode = (
+                                "challenge" if self.leaderboard_mode == "quick"
+                                else "quick")
+                        elif ev.key in (pygame.K_ESCAPE, pygame.K_m):
+                            self.selected_mode = self.leaderboard_mode
                             self.state = "menu"
 
                 elif ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
@@ -2248,13 +2493,9 @@ class Game:
                                 self._whack(h.row, h.col)
                                 break
                     elif self.state == "menu":
-                        self._reset()
-                        self.state = "play"
-                        self._play("start")
+                        self._start_mode()
                     elif self.state == "over":
-                        self._reset()
-                        self.state = "play"
-                        self._play("start")
+                        self._start_mode()
                     elif self.state == "quit_confirm":
                         self.state = "menu"
 

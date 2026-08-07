@@ -12,6 +12,20 @@ Create `~/.local/share/whack-a-hacker/theme_config.json` to customize text witho
     "game_over_title": "GAME OVER",
     "score_label": "Score:"
   },
+  "ui_labels": {
+    "modes": {
+      "quick": "Quick Play",
+      "quick_instruction": "Hit everything!",
+      "challenge": "Cyber Challenge",
+      "challenge_instruction": "Stop threats. Protect friendlies. Collect power-ups."
+    },
+    "guide": {
+      "title": "POINTS GUIDE",
+      "hit": "HIT",
+      "protect": "PROTECT",
+      "collect": "COLLECT"
+    }
+  },
   "enemies": {
     "hacker": "MOLE",
     "boss": "KING MOLE"
