@@ -59,8 +59,7 @@
       "se_hits": "Spies Caught",
       "bosses_k": "Bosses Defeated",
       "pu_got": "Power-ups Collected",
-      "max_combo": "Max Combo",
-      "accuracy": "Accuracy"
+      "max_combo": "Max Combo"
     },
     "buttons": {
       "start": "Press ENTER or Green Button to Start",

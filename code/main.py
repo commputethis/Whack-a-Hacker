@@ -842,7 +842,11 @@ class Leaderboard:
         try:
             if os.path.exists(self.path):
                 with open(self.path) as f:
-                    self.entries = json.load(f)
+                    entries = json.load(f)
+                    # Keep old leaderboard files usable. Missing fields are
+                    # handled with defaults when entries are displayed.
+                    self.entries = ([e for e in entries if isinstance(e, dict)]
+                                    if isinstance(entries, list) else [])
         except (json.JSONDecodeError, IOError):
             self.entries = []
 
@@ -853,12 +857,12 @@ class Leaderboard:
         except IOError:
             pass
 
-    def add(self, name, score, combo, accuracy, bosses):
+    def add(self, name, score, combo, bosses, friendlies_hit):
         self.entries.append({
             "name": name, "score": score, "combo": combo,
-            "acc": int(accuracy), "bosses": bosses,
+            "bosses": bosses, "friendlies_hit": friendlies_hit,
             "date": time.strftime("%Y-%m-%d %H:%M")})
-        self.entries.sort(key=lambda e: e["score"], reverse=True)
+        self.entries.sort(key=lambda e: e.get("score", 0), reverse=True)
         self.entries = self.entries[:MAX_LEADERBOARD]
         self._save()
 
@@ -868,7 +872,7 @@ class Leaderboard:
 
     def qualifies(self, score):
         return (len(self.entries) < MAX_LEADERBOARD or
-                score > self.entries[-1]["score"])
+                score > self.entries[-1].get("score", 0))
 
 
 # ===========================================================================
@@ -1225,8 +1229,7 @@ class Game:
                     "se_hits": "Spies Caught",
                     "bosses_k": "Bosses Defeated",
                     "pu_got": "Power-ups Collected",
-                    "max_combo": "Max Combo",
-                    "accuracy": "Accuracy"
+                    "max_combo": "Max Combo"
                 },
                 "buttons": {
                     "start": "Press ENTER or Green Button to Start",
@@ -1432,7 +1435,6 @@ class Game:
         self.score = 0
         self.combo = 0
         self.max_combo = 0
-        self.whacks = 0
         self.hits = 0
         self.f_hits = 0
         self.ph_hits = 0
@@ -1550,7 +1552,6 @@ class Game:
         h = self._hole(r, c)
         if not h:
             return
-        self.whacks += 1
         px, py = h.x + h.w // 2, h.y + h.h // 2
 
         if not h.active or h.hit:
@@ -2027,7 +2028,6 @@ class Game:
         t2 = self.f_lg.render(f"{self.config['theme']['score_label']}: {self.score}", True, C_TEXT)
         self.scr.blit(t2, (self.screen_width // 2 - t2.get_width() // 2, 90))
 
-        acc = (self.hits / self.whacks * 100) if self.whacks else 0
         stats = [
             f"{self.config['ui_labels']['stats']['hits']}: {self.hits}",
             f"{self.config['ui_labels']['stats']['missed']}: {self.missed}",
@@ -2037,11 +2037,15 @@ class Game:
             f"{self.config['ui_labels']['stats']['bosses_k']}: {self.bosses_k}",
             f"{self.config['ui_labels']['stats']['pu_got']}: {self.pu_got}",
             f"{self.config['ui_labels']['stats']['max_combo']}: {self.max_combo}x",
-            f"{self.config['ui_labels']['stats']['accuracy']}: {acc:.1f}%",
         ]
         y = 160
         for s in stats:
             r = self.f_md.render(s, True, (180, 180, 200))
+            self.scr.blit(r, (self.screen_width // 2 - r.get_width() // 2, y))
+            y += 35
+
+        if self.f_hits == 0:
+            r = self.f_md.render("CLEAN RUN", True, C_COMBO)
             self.scr.blit(r, (self.screen_width // 2 - r.get_width() // 2, y))
             y += 35
 
@@ -2084,27 +2088,31 @@ class Game:
             r = self.f_md.render("No scores yet!", True, (150, 150, 170))
             self.scr.blit(r, (self.screen_width // 2 - r.get_width() // 2, 140))
         else:
-            # Calculate the total width needed for the centered table
-            col_widths = [120, 400, 160, 180, 150, 150, 320]  # Approximate widths for each column
-            total_width = sum(col_widths)
+            # Use a compact font so every competitive metric remains readable.
+            row_format = "{:<5}{:<20}{:>10}{:>12}{:>9}{:>15}  {:<16}"
+            hdr = row_format.format("Rank", "Name", "Score", "Max Combo",
+                                    "Bosses", "Friendly Hits", "Date")
+            row_height = min(30, max(18, (self.screen_height - 350) //
+                                         MAX_LEADERBOARD))
+            table_font = self.f_xs if row_height >= 24 else self.f_xx
+            total_width = table_font.size(hdr)[0]
             start_x = (self.screen_width - total_width) // 2
             y = 135
-            
-            hdr = (f"{'#':<4}{'Name':<20}{'Score':<8}{'Combo':<7}"
-                f"{'Boss':<6}{'Acc%':<6}{'Date'}")
-            self.scr.blit(self.f_md.render(hdr, True, C_HOLE_BORDER),
+
+            self.scr.blit(table_font.render(hdr, True, C_HOLE_BORDER),
                         (start_x, 100))
             pygame.draw.line(self.scr, C_HOLE_BORDER, (start_x, y),
                             (start_x + total_width, y))
             y += 5
             for i, e in enumerate(self.lb.entries):
                 col = C_COMBO if i == 0 else (200, 200, 220)
-                line = (f"{i + 1:<4}{e.get('name', '???'):<20}"
-                        f"{e.get('score', 0):<8}{e.get('combo', 0):<7}"
-                        f"{e.get('bosses', 0):<6}{e.get('acc', 0):<6}"
-                        f"{e.get('date', '')}")
-                self.scr.blit(self.f_md.render(line, True, col), (start_x, y))
-                y += 35
+                line = row_format.format(
+                    i + 1, str(e.get("name", "???"))[:19],
+                    e.get("score", 0), e.get("combo", 0),
+                    e.get("bosses", 0), e.get("friendlies_hit", 0),
+                    str(e.get("date", ""))[:16])
+                self.scr.blit(table_font.render(line, True, col), (start_x, y))
+                y += row_height
 
         y = self.screen_height - 200
         self.scr.blit(
@@ -2212,10 +2220,8 @@ class Game:
                     elif self.state == "name":
                         if ev.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
                             nm = self.pname.strip() or "Anonymous"
-                            acc = ((self.hits / self.whacks * 100)
-                                if self.whacks else 0)
                             self.lb.add(nm, self.score, self.max_combo,
-                                        acc, self.bosses_k)
+                                        self.bosses_k, self.f_hits)
                             self.state = "over"
                         elif ev.key == pygame.K_BACKSPACE:
                             self.pname = self.pname[:-1]

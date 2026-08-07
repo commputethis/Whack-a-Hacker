@@ -34,7 +34,7 @@ python3 main.py
 - Boss Battles: Boss hackers appear every ~30 seconds and require 3 hits to defeat
 - Combo System: Chain consecutive hits for bonus points starting at 3 hits in a row
 - Procedural Assets: All sprites and sound effects are generated in code — no external files required
-- Persistent Leaderboard: Tracks high scores with stats like accuracy and bosses defeated
+- Persistent Leaderboard: Ranks players by score and tracks competitive stats such as maximum combo, bosses defeated, and friendlies hit
 - Customizable Themes: Easy to re-theme by changing image paths, colors, and text
 - Mouse Support: Click to whack with a custom hammer cursor that animates on click
 
@@ -92,12 +92,18 @@ python3 main.py
 
 High scores are saved to `~/.local/share/whack-a-hacker/leaderboard.json` on your system. The leaderboard tracks:
 
-- Score
 - Player name
+- Score (the primary ranking metric)
 - Maximum combo achieved
-- Accuracy percentage
 - Bosses defeated
+- Friendlies hit
 - Date of achievement
+
+Accuracy is no longer recorded or displayed. The Game Over screen instead gives
+detailed performance feedback, including hackers whacked and missed, friendlies
+hit, threats stopped, bosses defeated, power-ups collected, and maximum combo.
+A **Clean Run** is awarded when no friendlies are hit; it is a visual achievement
+only and does not affect score or leaderboard ranking.
 
 ## License
 
