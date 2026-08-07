@@ -1,14 +1,14 @@
 # Whack-a-Hacker
 
-[![Whack-a-Hacker Screenshot](images/MenuScreenshot.png)](images/MenuScreenshot.png)
-
-A fast-paced, cyber security themed whack-a-mole game built with Python and Pygame. Defeat hackers, avoid phishing traps, collect power-ups, and climb the leaderboard.
+A fast-paced, cyber security themed whack-a-mole game built with Python and Pygame. Stop cyber threats, master combos, and climb the leaderboard.
 
 - [Whack-a-Hacker](#whack-a-hacker)
   - [Quick Start](#quick-start)
   - [Features](#features)
   - [Documentation](#documentation)
   - [Game Modes](#game-modes)
+    - [Quick Play](#quick-play)
+    - [Cyber Challenge](#cyber-challenge)
   - [Game Mechanics](#game-mechanics)
     - [Scoring](#scoring)
       - [Enemy Points](#enemy-points)
@@ -50,11 +50,21 @@ python3 main.py
 
 ## Game Modes
 
-- **Quick Play — Hit everything!** Includes every threat type, bosses, combos,
-  and normal difficulty progression. Friendlies and power-ups do not spawn.
-- **Cyber Challenge — Stop threats. Protect friendlies. Collect power-ups.**
-  Preserves the full game with friendly penalties, power-ups, detailed feedback,
-  and a Clean Run when no friendlies are hit.
+### Quick Play
+
+Quick Play is the beginner-friendly mode: every target should be hit. It includes
+all threat types, bosses, combos, and normal difficulty progression, with no
+friendlies or power-ups to worry about.
+
+[![Quick Play menu](images/Quick_Play_MenuScreenshot.png)](images/Quick_Play_MenuScreenshot.png)
+
+### Cyber Challenge
+
+Cyber Challenge is the full game experience. Identify and stop threats, protect
+friendlies, collect power-ups, and build combos for bonus points. Avoiding every
+friendly also earns a Clean Run.
+
+[![Cyber Challenge menu](images/Cyber_Challenge_MenuScreenshot.png)](images/Cyber_Challenge_MenuScreenshot.png)
 
 On the menu, use **Up/Down** or press **1** for Quick Play and **2** for Cyber
 Challenge, then press **Enter / Green** to start. Selecting a mode does not start
